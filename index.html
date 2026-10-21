@@ -97,6 +97,38 @@ body { touch-action: none; user-select: none; -webkit-user-select: none; }
 .btn { font: 400 22px var(--font-display); color: #fff; background: linear-gradient(#ffa149, var(--maple) 50%, var(--maple-deep)); border: 2px solid #ffd9a8; border-radius: 12px; padding: 8px 34px; cursor: pointer; text-shadow: 0 2px 0 #8a2c00; box-shadow: 0 4px 0 #7a2400; }
 .btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #7a2400; }
 .note { margin-top: 12px; font-size: 11px; color: var(--muted); }
+/* class picker */
+.cls { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 0 0 14px; }
+.cbtn { text-align: left; font: inherit; color: var(--paper); background: rgba(0,0,0,.25); border: 2px solid #5b4a6e; border-radius: 12px; padding: 10px; cursor: pointer; display: flex; gap: 10px; align-items: center; }
+.cbtn[aria-pressed="true"] { border-color: var(--gold); background: rgba(255,180,60,.14); }
+.cbtn svg { width: 34px; height: 34px; flex: none; }
+.cbtn b { display: block; font: 400 18px var(--font-display); }
+.cbtn small { display: block; color: var(--muted); font-size: 11px; line-height: 1.4; }
+.card { max-height: 100%; overflow: auto; }
+
+/* shop */
+.shop { text-align: left; width: min(540px, 100%); }
+.shead { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.shead h2 { font: 400 26px var(--font-display); margin: 0; color: #fff3d6; text-shadow: 0 2px 0 var(--maple-deep); }
+.shead .sw { font-size: 12px; color: var(--muted); }
+.shead .meso { margin-left: auto; }
+.ssec { font-size: 11px; letter-spacing: .12em; color: var(--maple); font-weight: 700; margin: 14px 0 6px; }
+.srows { display: flex; flex-direction: column; gap: 6px; }
+.srow { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 8px; border-radius: 10px; background: rgba(0,0,0,.22); border: 1px solid rgba(255,255,255,.06); }
+.sic { width: 40px; height: 40px; border-radius: 8px; background: #1a1224; border: 1px solid #6d5a86; display: grid; place-items: center; }
+.sic svg { width: 28px; height: 28px; }
+.sn { font-weight: 700; font-size: 14px; }
+.sn .own { font-weight: 400; font-size: 11px; color: var(--muted); margin-left: 6px; }
+.sd { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.sd b { color: var(--gold); font-weight: 600; }
+.sd .req { color: #ff8a8a; }
+.sbuy { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+.sbtn { font: 600 12px var(--font-body); color: #fff; background: linear-gradient(#ffa149, var(--maple-deep)); border: 1px solid #ffd9a8; border-radius: 8px; padding: 5px 10px; cursor: pointer; white-space: nowrap; display: inline-flex; gap: 5px; align-items: center; font-variant-numeric: tabular-nums; }
+.sbtn .coin { width: 12px; height: 12px; }
+.sbtn:disabled { background: #3a3046; border-color: #5b4a6e; color: #8f8099; cursor: not-allowed; }
+.sbtn:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.sfoot { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 14px; font-size: 11px; color: var(--muted); }
+@media (max-width: 480px) { .srow { grid-template-columns: 40px minmax(0, 1fr); } .sbuy { grid-column: 1 / -1; justify-content: flex-start; } }
 @media (prefers-reduced-motion: reduce) { #log div { animation: none; } }
 </style>
 </head>
@@ -109,6 +141,7 @@ body { touch-action: none; user-select: none; -webkit-user-select: none; }
   <div id="rotate" hidden>横过手机来玩，视野更大</div>
 </div>
 <div id="tools">
+  <button class="tbtn" id="shopBtn" type="button">商店</button>
   <button class="tbtn" id="muteBtn" type="button">音效：开</button>
   <button class="tbtn" id="helpBtn" type="button">操作说明</button>
 </div>
@@ -121,7 +154,7 @@ body { touch-action: none; user-select: none; -webkit-user-select: none; }
     <button class="tb" data-k="left" type="button">←</button><button class="tb" data-k="down" type="button">↓</button><button class="tb" data-k="right" type="button">→</button>
   </div>
   <div class="acts">
-    <button class="tb" data-k="hp" type="button">红药</button><button class="tb" data-k="mp" type="button">蓝药</button><button class="tb big" data-k="skill" type="button">连斩</button>
+    <button class="tb" data-k="hp" type="button">红药</button><button class="tb" data-k="mp" type="button">蓝药</button><button class="tb big" data-k="skill" id="skillBtn" type="button">连斩</button>
     <span></span><button class="tb big" data-k="jump" type="button">跳</button><button class="tb big" data-k="attack" type="button">攻击</button>
   </div>
 </div>
@@ -146,17 +179,33 @@ body { touch-action: none; user-select: none; -webkit-user-select: none; }
 <div class="ov" id="title">
   <div class="card">
     <div class="logo">枫叶岛冒险</div>
-    <div class="sub">见习剑士小枫的第一次狩猎。打倒怪物、收集金币、升级，然后迎战蘑菇王。</div>
+    <div class="sub">小枫的第一次狩猎。打倒怪物、收集金币、在村口商店升级装备，然后迎战蘑菇王。</div>
+    <div class="cls" role="group" aria-label="选择职业">
+      <button class="cbtn" type="button" data-cls="warrior" aria-pressed="true"><svg viewBox="0 0 34 34"><path d="M8 26 24 6l3 1-1 3L10 28z" fill="#cfe0ee" stroke="#5a7090"/><path d="M6 24l4 4M5 29l3-3" stroke="#ffcf3a" stroke-width="3" stroke-linecap="round"/></svg><span><b>剑士</b><small>近战 · 血厚<br>技能「连斩」一次砍 5 只</small></span></button>
+      <button class="cbtn" type="button" data-cls="archer" aria-pressed="false"><svg viewBox="0 0 34 34"><path d="M10 4q16 13 0 26" fill="none" stroke="#a8743f" stroke-width="3" stroke-linecap="round"/><path d="M10 4v26" stroke="#fff" stroke-width="1"/><path d="M6 17h22" stroke="#8a5a32" stroke-width="2"/><path d="M28 17l-5-3v6z" fill="#dfe8f0"/></svg><span><b>弓箭手</b><small>远程 · 暴击高<br>技能「穿透箭」射穿一排</small></span></button>
+    </div>
     <div class="keys">
       <kbd>← →</kbd><span>移动</span>
       <kbd>↑ ↓</kbd><span>爬绳子（站在绳子旁按↑）</span>
       <kbd>空格 / C</kbd><span>跳跃（↓ + 跳 可跳下平台）</span>
       <kbd>X / Ctrl</kbd><span>普通攻击（按住连续攻击）</span>
-      <kbd>Z</kbd><span>技能·连斩（耗 MP，攻击多个怪物）</span>
+      <kbd>Z</kbd><span id="zKey">技能·连斩（耗 MP，攻击多个怪物）</span>
+      <kbd>↑</kbd><span>在村口商人旁边按↑打开商店</span>
       <kbd>1 / 2</kbd><span>喝红药 / 蓝药</span>
     </div>
     <button class="btn" id="startBtn" type="button">开始冒险</button>
     <div class="note" id="saveNote">进度会自动保存在这台设备的浏览器里</div>
+  </div>
+</div>
+
+<div class="ov" id="shop" hidden>
+  <div class="card shop" role="dialog" aria-labelledby="shopTitle">
+    <div class="shead">
+      <div><h2 id="shopTitle">老枫杂货铺</h2><div class="sw">“出门打猎，药水和好武器一样都不能少！”</div></div>
+      <div class="meso"><span class="coin"></span><span id="shopMeso">0</span></div>
+    </div>
+    <div id="shopBody"></div>
+    <div class="sfoot"><span>Esc 或 关闭 返回游戏</span><button class="btn" id="shopClose" type="button" style="font-size:18px;padding:6px 26px">关闭</button></div>
   </div>
 </div>
 
@@ -204,6 +253,19 @@ const trees = [
   { x: 1640, s: 1, c: 0 }, { x: 2060, s: 1.15, c: 1 }, { x: 2560, s: 1.05, c: 2 },
 ];
 const PORTAL = { x: 2730, y: GROUND };
+const SHOP = { x: 555, y: GROUND };
+
+// ---------- classes & equipment ----------
+const CLASSES = {
+  warrior: { hpLv: 24, mpLv: 9, skill: '连斩', skillDesc: '技能·连斩（耗 MP，攻击多个怪物）', crit: .16, jobs: ['见习剑士', '剑客', '勇士'] },
+  archer:  { hpLv: 18, mpLv: 12, skill: '穿透箭', skillDesc: '技能·穿透箭（耗 MP，射穿一排怪物）', crit: .24, jobs: ['见习弓手', '猎人', '射手'] },
+};
+const WEAPONS = { warrior: ['新手剑', '铁剑', '钢刀', '秘银剑', '枫叶大剑'], archer: ['新手弓', '猎人弓', '复合弓', '精灵长弓', '枫叶神弓'] };
+const WPN_MULT = [1, 1.3, 1.65, 2.1, 2.7], WPN_COST = [0, 300, 1200, 4000, 12000], WPN_LV = [1, 5, 10, 15, 20];
+const ARMORS = ['布衣', '皮甲', '锁子甲', '骑士铠甲'], ARM_DEF = [0, 4, 10, 18], ARM_COST = [0, 250, 1000, 3500], ARM_LV = [1, 5, 10, 15];
+const POTIONS = [{ id: 'hp', name: '红色药水', desc: '恢复 50 + 30% 最大 HP', price: 40 }, { id: 'mp', name: '蓝色药水', desc: '恢复 40 + 30% 最大 MP', price: 60 }];
+const BLADE_COL = [['#f4fbff', '#bcd3e6', '#8aa6bf'], ['#eef2f4', '#9fb0bd', '#6f8090'], ['#e6f0ff', '#8fb4e8', '#4f74b8'], ['#e8fffd', '#7fe8e0', '#2fa8b8'], ['#fff4d0', '#ffb347', '#e8621b']];
+const BOW_COL = [['#b98450', '#6b4224'], ['#8a5a32', '#4e2e16'], ['#6a8ac8', '#2f4a80'], ['#e8f0f8', '#7a96b0'], ['#ffb347', '#c4410e']];
 
 // ---------- monster types ----------
 const TYPES = {
@@ -229,10 +291,12 @@ const expNeed = lv => Math.round(15 * Math.pow(lv, 1.65) + 5 * lv);
 const player = {
   x: 260, y: GROUND, vx: 0, vy: 0, face: 1, onGround: true, plat: GROUND_PLAT,
   level: 1, exp: 0, hp: 50, maxhp: 50, mp: 30, maxmp: 30, meso: 0, hpPot: 5, mpPot: 5, kills: 0,
+  cls: 'warrior', wpn: 0, arm: 0,
   atkT: 0, atkDur: 0, atkKind: '', hitDone: false, atkCD: 0, invul: 0, kbT: 0, climb: null,
   dropT: 0, dropFrom: null, walkT: 0, climbT: 0, regenT: 0, dead: false, blinkT: 3,
 };
-let monsters = [], drops = [], parts = [], nums = [], fx = [], pendingHits = [];
+let monsters = [], drops = [], parts = [], nums = [], fx = [], pendingHits = [], arrows = [];
+let shopOpen = false;
 let boss = null, bossSpawned = false;
 const cam = { x: 0, y: GROUND + 120, shake: 0 };
 let running = false, time = 0;
@@ -240,7 +304,10 @@ let VW = 960, VH = 540, scale = 1, DPR = 1, hudPx = 70;
 
 function applySave(s) {
   if (!s || typeof s !== 'object') return;
-  for (const k of ['level', 'exp', 'meso', 'hpPot', 'mpPot', 'kills']) if (Number.isFinite(s[k])) player[k] = s[k];
+  for (const k of ['level', 'exp', 'meso', 'hpPot', 'mpPot', 'kills', 'wpn', 'arm']) if (Number.isFinite(s[k])) player[k] = s[k];
+  if (CLASSES[s.cls]) player.cls = s.cls;
+  player.wpn = clamp(Math.floor(player.wpn), 0, WPN_MULT.length - 1);
+  player.arm = clamp(Math.floor(player.arm), 0, ARM_DEF.length - 1);
   player.level = clamp(Math.floor(player.level), 1, 200);
   player.exp = Math.max(0, player.exp);
   while (player.exp >= expNeed(player.level)) { player.exp -= expNeed(player.level); player.level++; }
@@ -248,14 +315,15 @@ function applySave(s) {
 }
 function getSave() {
   const p = player;
-  return { level: p.level, exp: p.exp, meso: p.meso, hpPot: p.hpPot, mpPot: p.mpPot, kills: p.kills };
+  return { level: p.level, exp: p.exp, meso: p.meso, hpPot: p.hpPot, mpPot: p.mpPot, kills: p.kills, cls: p.cls, wpn: p.wpn, arm: p.arm };
 }
 function persist() { try { localStorage.setItem('maple-island-save', JSON.stringify(getSave())); } catch (e) {} }
 function recalcStats() {
-  player.maxhp = 50 + (player.level - 1) * 24;
-  player.maxmp = 30 + (player.level - 1) * 9;
+  const C = CLASSES[player.cls];
+  player.maxhp = 50 + (player.level - 1) * C.hpLv;
+  player.maxmp = 30 + (player.level - 1) * C.mpLv;
 }
-const jobName = lv => lv >= 30 ? '勇士' : lv >= 10 ? '剑客' : '见习剑士';
+const jobName = (cls, lv) => CLASSES[cls].jobs[lv >= 30 ? 2 : lv >= 10 ? 1 : 0];
 
 // ---------- input ----------
 const keys = {};
@@ -316,6 +384,9 @@ const sfx = {
   die: () => tone(200, .3, 'triangle', .06, -150),
   level: () => [523, 659, 784, 1047].forEach((f, i) => tone(f, .25, 'triangle', .08, 0, i * .09)),
   potion: () => tone(400, .18, 'sine', .07, 500),
+  draw: () => tone(160, .18, 'triangle', .04, 60),
+  shoot: () => { tone(900, .09, 'triangle', .06, -500); noise(.05, .05); },
+  buy: () => { tone(784, .07, 'square', .04); tone(1175, .14, 'square', .04, 0, .07); },
   boss: () => { tone(110, .6, 'sawtooth', .08, -40); tone(82, .8, 'square', .05, 0, .2); },
 };
 
@@ -454,12 +525,12 @@ function gainExp(n) {
     burst(p.x, p.y - 40, 36, ['#ffe680', '#fff', '#ffb347', '#9fe0ff'], 320, 6, -60);
     sfx.level();
     log(`[系统] 升级了！现在是 ${p.level} 级`, 'sys');
-    if (p.level === 10) log('[系统] 转职成功：剑客', 'sys');
+    if (p.level === 10 || p.level === 30) log(`[系统] 转职成功：${jobName(p.cls, p.level)}`, 'sys');
   }
 }
 function hurtPlayer(atk, dir) {
   const p = player;
-  const dmg = Math.max(1, Math.round(atk * rand(.85, 1.15) - p.level * .6));
+  const dmg = Math.max(1, Math.round(atk * rand(.85, 1.15) - p.level * .6 - ARM_DEF[p.arm]));
   p.hp -= dmg; p.invul = 1.6; p.kbT = .35; p.climb = null;
   p.vx = dir * 260; p.vy = -330; p.onGround = false;
   popNum(p.x, p.y - 80, dmg, 'player');
@@ -489,7 +560,12 @@ function startAttack(kind) {
     if (p.mp < cost) { if (!p._mpWarn || time - p._mpWarn > 1.5) { log('MP 不足', 'sys'); p._mpWarn = time; } return; }
     p.mp -= cost;
   }
-  p.atkKind = kind; p.atkDur = kind === 'skill' ? .55 : .38; p.atkT = p.atkDur; p.hitDone = false;
+  p.atkKind = kind; p.hitDone = false;
+  if (p.cls === 'archer') {
+    p.atkDur = kind === 'skill' ? .6 : .48; p.atkT = p.atkDur; p.atkCD = kind === 'skill' ? .66 : .52;
+    sfx.draw(); updateHud(); return;
+  }
+  p.atkDur = kind === 'skill' ? .55 : .38; p.atkT = p.atkDur;
   p.atkCD = kind === 'skill' ? .62 : .42;
   (kind === 'skill' ? sfx.skill : sfx.swing)();
   fx.push({ type: kind === 'skill' ? 'slash2' : 'slash', x: p.x, y: p.y, face: p.face, t: 0, life: kind === 'skill' ? .4 : .26, delay: kind === 'skill' ? .1 : .08 });
@@ -505,20 +581,47 @@ function doHit() {
     return m.x + T.w / 2 > x0 && m.x - T.w / 2 < x1 && my1 > p.y - 95 && my0 < p.y + 10;
   }).sort((a, b) => Math.abs(a.x - p.x) - Math.abs(b.x - p.x)).slice(0, maxT);
   for (const m of targets) for (let i = 0; i < lines; i++) {
-    const base = 12 + p.level * 5.5;
-    const crit = Math.random() < .16;
-    const dmg = Math.round(base * rand(.82, 1.18) * mult * (crit ? 1.8 : 1));
-    pendingHits.push({ m, dmg, crit, t: i * .1, i });
+    const [dmg, crit] = rollDmg(mult);
+    pendingHits.push({ m, dmg, crit, t: i * .1, i, dir: p.face });
   }
+}
+function rollDmg(mult) {
+  const p = player, base = (12 + p.level * 5.5) * WPN_MULT[p.wpn];
+  const crit = Math.random() < CLASSES[p.cls].crit;
+  return [Math.round(base * rand(.82, 1.18) * mult * (crit ? 1.8 : 1)), crit];
+}
+function fireArrow(skill) {
+  const p = player;
+  arrows.push({ x: p.x + p.face * 26, y: p.y - 33, dir: p.face, dist: 0, max: skill ? 540 : 430, pierce: skill ? 5 : 1, lines: skill ? 2 : 1, mult: skill ? 1.05 : .95, skill, hits: new Set() });
+  sfx.shoot();
+  if (skill) burst(p.x + p.face * 30, p.y - 33, 10, ['#d8ff9a', '#fff', '#8fe86a'], 160, 4, 0);
+}
+function updateArrows(dt) {
+  for (const a of arrows) {
+    const step = (a.skill ? 1050 : 920) * dt;
+    a.x += a.dir * step; a.dist += step;
+    for (const m of monsters) {
+      if (!m.alive || a.hits.has(m)) continue;
+      const T = m.T, my1 = m.y - m.hopY, my0 = my1 - T.h;
+      if (Math.abs(a.x - m.x) < T.w / 2 + 8 && a.y > my0 - 14 && a.y < my1 + 6) {
+        a.hits.add(m);
+        for (let i = 0; i < a.lines; i++) { const [dmg, crit] = rollDmg(a.mult); pendingHits.push({ m, dmg, crit, t: i * .1, i, dir: a.dir }); }
+        if (a.hits.size >= a.pierce) { a.done = true; break; }
+      }
+    }
+    if (a.dist >= a.max || a.x < 0 || a.x > WORLD_W) a.done = true;
+  }
+  arrows = arrows.filter(a => !a.done);
 }
 function applyHit(h) {
   const m = h.m; if (!m.alive) return;
   m.hp -= h.dmg; m.hitT = .18; m.aggro = true; m.showBar = 4;
-  m.kbV = (m === boss ? 40 : 170) * player.face;
+  const dir = h.dir || player.face;
+  m.kbV = (m === boss ? 40 : 170) * dir;
   if (m.state === 'idle') { m.state = 'walk'; m.stateT = .3; }
   popNum(m.x + rand(-6, 6), m.y - m.hopY - m.T.h - 14 - h.i * 30, h.dmg, h.crit ? 'crit' : 'mob');
-  burst(m.x - player.face * m.T.w * .2, m.y - m.hopY - m.T.h * .5, h.crit ? 10 : 6, h.crit ? ['#fff', '#ff6a8a', '#ffd34d'] : ['#fff', '#ffe28a'], 260, 4, 200);
-  fx.push({ type: 'impact', x: m.x - player.face * m.T.w * .15, y: m.y - m.hopY - m.T.h * .5, t: 0, life: .2, crit: h.crit });
+  burst(m.x - dir * m.T.w * .2, m.y - m.hopY - m.T.h * .5, h.crit ? 10 : 6, h.crit ? ['#fff', '#ff6a8a', '#ffd34d'] : ['#fff', '#ffe28a'], 260, 4, 200);
+  fx.push({ type: 'impact', x: m.x - dir * m.T.w * .15, y: m.y - m.hopY - m.T.h * .5, t: 0, life: .2, crit: h.crit });
   sfx.hit();
   if (m.hp <= 0) killMob(m);
   if (boss) $('bossFill').style.width = (Math.max(0, boss.hp) / boss.maxhp * 100) + '%';
@@ -599,8 +702,11 @@ function updatePlayer(dt) {
   if (p.atkT > 0) {
     p.atkT -= dt;
     const el = p.atkDur - p.atkT;
-    if (!p.hitDone && el >= p.atkDur * .35) { p.hitDone = true; doHit(); }
+    if (!p.hitDone && el >= p.atkDur * (p.cls === 'archer' ? .5 : .35)) { p.hitDone = true; p.cls === 'archer' ? fireArrow(p.atkKind === 'skill') : doHit(); }
   }
+
+  // shop
+  if (running && once.up && p.onGround && nearShop()) { openShop(); return; }
 
   // portal hint
   if (Math.abs(p.x - PORTAL.x) < 30 && p.onGround && U && !p._portalMsg) { p._portalMsg = true; log('[系统] 前方的「蘑菇森林」还在建设中', 'sys'); setTimeout(() => p._portalMsg = false, 3000); }
@@ -610,6 +716,7 @@ function updateWorld(dt) {
   time += dt;
   updatePlayer(dt);
   updateMobs(dt);
+  updateArrows(dt);
   for (let i = pendingHits.length - 1; i >= 0; i--) {
     const h = pendingHits[i]; h.t -= dt;
     if (h.t <= 0) { applyHit(h); pendingHits.splice(i, 1); }
@@ -656,7 +763,8 @@ function setTxt(id, v) { if (hudCache[id] !== v) { hudCache[id] = v; $(id).textC
 function setW(id, v) { const s = v.toFixed(2) + '%'; if (hudCache[id] !== s) { hudCache[id] = s; $(id).style.width = s; } }
 function updateHud() {
   const p = player, need = expNeed(p.level);
-  setTxt('lv', String(p.level)); setTxt('job', jobName(p.level));
+  setTxt('lv', String(p.level)); setTxt('job', jobName(p.cls, p.level));
+  setTxt('skillBtn', CLASSES[p.cls].skill); setTxt('zKey', CLASSES[p.cls].skillDesc);
   setTxt('hpTxt', `HP ${Math.ceil(p.hp)} / ${p.maxhp}`); setW('hpFill', p.hp / p.maxhp * 100);
   setTxt('mpTxt', `MP ${Math.ceil(p.mp)} / ${p.maxmp}`); setW('mpFill', p.mp / p.maxmp * 100);
   setTxt('expTxt', `EXP ${p.exp} / ${need} (${(p.exp / need * 100).toFixed(2)}%)`); setW('expFill', p.exp / need * 100);
@@ -771,7 +879,7 @@ function drawHouse() {
   for (let i = 0; i < 4; i++) { const k = (time * .4 + i / 4) % 1; ctx.fillStyle = `rgba(255,255,255,${.5 * (1 - k)})`; ell(161 + Math.sin(k * 6 + i) * 8 + k * 20, -200 - k * 80, 8 + k * 14, 8 + k * 12); ctx.fill(); }
   ctx.restore();
   // signpost
-  ctx.save(); ctx.translate(470, GROUND);
+  ctx.save(); ctx.translate(428, GROUND);
   ctx.fillStyle = '#6b4224'; ctx.fillRect(-4, -78, 8, 78);
   ctx.fillStyle = '#c98a4a'; ctx.beginPath(); ctx.moveTo(-50, -86); ctx.lineTo(44, -86); ctx.lineTo(58, -72); ctx.lineTo(44, -58); ctx.lineTo(-50, -58); ctx.closePath(); ctx.fill();
   ctx.strokeStyle = '#7a4a26'; ctx.lineWidth = 2; ctx.stroke();
@@ -902,16 +1010,23 @@ function drawPlayer() {
   }
   if (climbing) armA = 2.8 + cw * .3;
   if (air && p.atkT <= 0) armA = 1.2;
+  const archer = p.cls === 'archer';
+  const C = archer ? { shirt: ['#7acb52', '#3f8a2e'], sleeve: '#3f8a2e', sleeveF: '#56a83c', pants: '#5a3f2a' } : { shirt: ['#4f8ff0', '#2f68c0'], sleeve: '#2f68c0', sleeveF: '#3a78d8', pants: '#2b3550' };
+  let pull = 0, backA = climbing ? 2.8 - cw * .3 : (walking ? w * .6 : -.25) + (air ? 1.4 : 0);
+  if (archer && !climbing) {
+    armA = p.atkT > 0 ? -1.52 : air ? -.9 : -.45 + (walking ? -w * .25 : 0);
+    if (p.atkT > 0) { const k = 1 - p.atkT / p.atkDur; pull = k < .5 ? k / .5 : Math.max(0, 1 - (k - .5) / .12); backA = -1.35; }
+  }
 
   // back arm
-  ctx.save(); ctx.translate(-5, -31); ctx.rotate(climbing ? 2.8 - cw * .3 : (walking ? w * .6 : -.25) + (air ? 1.4 : 0));
-  ctx.fillStyle = '#2f68c0'; rr(-3.5, -1, 7, 8, 3); ctx.fill();
+  ctx.save(); ctx.translate(-5, -31); ctx.rotate(backA);
+  ctx.fillStyle = C.sleeve; rr(-3.5, -1, 7, 8, 3); ctx.fill();
   ctx.fillStyle = '#ffd9b8'; rr(-3, 6, 6, 7, 3); ctx.fill(); ctx.restore();
 
   // legs
   const leg = (lx, a) => {
     ctx.save(); ctx.translate(lx, -16); ctx.rotate(a);
-    ctx.fillStyle = '#2b3550'; rr(-4.5, 0, 9, 12, 3); ctx.fill();
+    ctx.fillStyle = C.pants; rr(-4.5, 0, 9, 12, 3); ctx.fill();
     ctx.fillStyle = '#6b3a1e'; rr(-5, 10, 12, 6, 3); ctx.fill();
     ctx.restore();
   };
@@ -920,7 +1035,7 @@ function drawPlayer() {
   else { leg(-4, w * .65); leg(4, -w * .65); }
 
   // torso
-  const tg = ctx.createLinearGradient(0, -36, 0, -14); tg.addColorStop(0, '#4f8ff0'); tg.addColorStop(1, '#2f68c0');
+  const tg = ctx.createLinearGradient(0, -36, 0, -14); tg.addColorStop(0, C.shirt[0]); tg.addColorStop(1, C.shirt[1]);
   ctx.fillStyle = tg; rr(-11, -36, 22, 22, 6); ctx.fill();
   ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.moveTo(-6, -36); ctx.lineTo(0, -29); ctx.lineTo(6, -36); ctx.closePath(); ctx.fill();
   ctx.fillStyle = '#7a4a26'; ctx.fillRect(-11, -19, 22, 4);
@@ -944,6 +1059,18 @@ function drawPlayer() {
   ctx.lineTo(16, -6); ctx.lineTo(14, 0); ctx.lineTo(10, -7); ctx.lineTo(6, -1); ctx.lineTo(3, -8); ctx.lineTo(-2, -2); ctx.lineTo(-4, -9);
   ctx.quadraticCurveTo(-12, -6, -12, 8); ctx.closePath(); ctx.fill();
   ctx.strokeStyle = 'rgba(255,220,170,.5)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(-2, -6, 14, -2.4, -1.4); ctx.stroke();
+  if (archer) {
+    // hunter's cap with feather
+    ctx.save(); ctx.translate(-8, -21); ctx.rotate(-.9 + Math.sin(time * 3) * .05);
+    ctx.fillStyle = '#e8431c'; ell(-6, 0, 12, 3.2); ctx.fill();
+    ctx.strokeStyle = '#a82a0e'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(-17, 0); ctx.lineTo(5, 0); ctx.stroke();
+    ctx.restore();
+    const cg = ctx.createLinearGradient(0, -26, 0, -6); cg.addColorStop(0, '#7acb52'); cg.addColorStop(1, '#3f8a2e');
+    ctx.fillStyle = cg;
+    ctx.beginPath(); ctx.moveTo(-21, -5); ctx.quadraticCurveTo(-16, -27, 4, -24); ctx.quadraticCurveTo(20, -21, 22, -7); ctx.quadraticCurveTo(0, -11, -21, -5); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(-17, -15); ctx.lineTo(-33, -7); ctx.lineTo(-16, -6); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = '#2f6a22'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(-21, -5); ctx.quadraticCurveTo(0, -11, 22, -7); ctx.stroke();
+  }
   // face
   if (p.dead) {
     ctx.strokeStyle = '#2b1a10'; ctx.lineWidth = 2;
@@ -966,14 +1093,20 @@ function drawPlayer() {
 
   // front arm + sword
   ctx.save(); ctx.translate(3, -31); ctx.rotate(armA);
-  ctx.fillStyle = '#3a78d8'; rr(-4, -1, 8, 8, 3); ctx.fill();
+  ctx.fillStyle = C.sleeveF; rr(-4, -1, 8, 8, 3); ctx.fill();
   ctx.fillStyle = '#ffd9b8'; rr(-3.5, 6, 7, 7, 3); ctx.fill();
-  ctx.translate(0, 12); ctx.rotate(swordRel);
-  if (!climbing) {
+  ctx.translate(0, 12);
+  if (archer) { if (!climbing) drawBow(pull, p.wpn, p.atkKind === 'skill' && p.atkT > 0); }
+  else if (!climbing) {
+    ctx.rotate(swordRel);
+    const bc = BLADE_COL[p.wpn];
     ctx.fillStyle = '#7a4a26'; rr(-2, -6, 4, 10, 1.5); ctx.fill();
     ctx.fillStyle = '#ffcf3a'; rr(-7, 3, 14, 4, 2); ctx.fill();
-    const bg = ctx.createLinearGradient(-3, 0, 3, 0); bg.addColorStop(0, '#f4fbff'); bg.addColorStop(.5, '#bcd3e6'); bg.addColorStop(1, '#8aa6bf');
-    ctx.fillStyle = bg; ctx.beginPath(); ctx.moveTo(-3, 7); ctx.lineTo(3, 7); ctx.lineTo(3, 38); ctx.lineTo(0, 45); ctx.lineTo(-3, 38); ctx.closePath(); ctx.fill();
+    const bg = ctx.createLinearGradient(-3, 0, 3, 0); bg.addColorStop(0, bc[0]); bg.addColorStop(.5, bc[1]); bg.addColorStop(1, bc[2]);
+    const len = 38 + p.wpn * 2;
+    if (p.wpn >= 3) { ctx.shadowColor = bc[1]; ctx.shadowBlur = 10; }
+    ctx.fillStyle = bg; ctx.beginPath(); ctx.moveTo(-3, 7); ctx.lineTo(3, 7); ctx.lineTo(3, len); ctx.lineTo(0, len + 7); ctx.lineTo(-3, len); ctx.closePath(); ctx.fill();
+    ctx.shadowBlur = 0;
     ctx.strokeStyle = 'rgba(255,255,255,.8)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(-1, 9); ctx.lineTo(-1, 38); ctx.stroke();
   }
   ctx.restore();
@@ -985,6 +1118,97 @@ function drawPlayer() {
   const tw = ctx.measureText('小枫').width + 12;
   ctx.fillStyle = 'rgba(20,14,28,.7)'; rr(p.x - tw / 2, p.y + 6, tw, 16, 3); ctx.fill();
   ctx.fillStyle = '#fff'; ctx.fillText('小枫', p.x, p.y + 14.5);
+  ctx.restore();
+}
+
+function drawBow(pull, tier, skill) {
+  const [lc, dc] = BOW_COL[tier];
+  ctx.lineCap = 'round';
+  if (tier >= 3) { ctx.shadowColor = lc; ctx.shadowBlur = 10; }
+  ctx.strokeStyle = dc; ctx.lineWidth = 5;
+  ctx.beginPath(); ctx.moveTo(-21, -10); ctx.quadraticCurveTo(0, 12, 21, -10); ctx.stroke();
+  ctx.strokeStyle = lc; ctx.lineWidth = 2.5; ctx.stroke();
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = '#4e2e16'; rr(-4, -2, 8, 6, 2); ctx.fill();
+  const sy = -10 - pull * 16;
+  ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(-21, -10); ctx.lineTo(0, sy); ctx.lineTo(21, -10); ctx.stroke();
+  if (pull > .05) {
+    if (skill) { ctx.shadowColor = '#b8ff6a'; ctx.shadowBlur = 12; }
+    ctx.strokeStyle = skill ? '#d8ff9a' : '#8a5a32'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(0, sy); ctx.lineTo(0, sy + 34); ctx.stroke();
+    ctx.fillStyle = skill ? '#f4ffd8' : '#dfe8f0'; ctx.beginPath(); ctx.moveTo(-4, sy + 32); ctx.lineTo(4, sy + 32); ctx.lineTo(0, sy + 41); ctx.closePath(); ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+}
+
+function drawArrow(a) {
+  ctx.save(); ctx.translate(a.x, a.y); ctx.scale(a.dir, 1);
+  if (a.skill) {
+    const g = ctx.createLinearGradient(-120, 0, 10, 0); g.addColorStop(0, 'rgba(184,255,106,0)'); g.addColorStop(1, 'rgba(216,255,154,.85)');
+    ctx.fillStyle = g; ell(-50, 0, 64, 7); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,.9)'; ell(-20, 0, 30, 2); ctx.fill();
+  } else {
+    ctx.strokeStyle = 'rgba(255,255,255,.5)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(-60, 0); ctx.lineTo(-26, 0); ctx.stroke();
+  }
+  ctx.strokeStyle = a.skill ? '#eaffc8' : '#8a5a32'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(-26, 0); ctx.lineTo(6, 0); ctx.stroke();
+  ctx.fillStyle = '#dfe8f0'; ctx.beginPath(); ctx.moveTo(5, -4); ctx.lineTo(15, 0); ctx.lineTo(5, 4); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#e8431c'; ctx.beginPath(); ctx.moveTo(-27, 0); ctx.lineTo(-20, 0); ctx.lineTo(-24, -5); ctx.lineTo(-30, -5); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(-27, 0); ctx.lineTo(-20, 0); ctx.lineTo(-24, 5); ctx.lineTo(-30, 5); ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+
+function drawShop() {
+  ctx.save(); ctx.translate(SHOP.x, SHOP.y);
+  ctx.fillStyle = 'rgba(40,30,10,.2)'; ell(0, 0, 64, 8); ctx.fill();
+  ctx.fillStyle = '#6b4224'; ctx.fillRect(-50, -104, 6, 104); ctx.fillRect(44, -104, 6, 104);
+  // merchant
+  ctx.save(); ctx.translate(0, Math.sin(time * 2) * 1);
+  ctx.fillStyle = '#8a5a32'; rr(-14, -66, 28, 30, 7); ctx.fill();
+  ctx.fillStyle = '#f2e6cc'; rr(-8, -60, 16, 24, 3); ctx.fill();
+  ctx.fillStyle = '#ffd9b8'; ell(0, -80, 16, 15); ctx.fill();
+  ctx.fillStyle = '#d8d0c4'; ell(-13, -82, 5, 8); ctx.fill(); ell(13, -82, 5, 8); ctx.fill();
+  ctx.fillStyle = '#c4410e'; ctx.beginPath(); ctx.ellipse(0, -92, 15, 6, 0, Math.PI, 0); ctx.fill(); rr(-9, -102, 18, 11, 4); ctx.fill();
+  ctx.strokeStyle = '#2b1a10'; ctx.lineWidth = 1.8;
+  ctx.beginPath(); ctx.arc(-5, -81, 2.5, Math.PI + .3, -.3); ctx.moveTo(7.5, -81); ctx.arc(5, -81, 2.5, Math.PI + .3, -.3); ctx.stroke();
+  ctx.fillStyle = '#e8e0d4'; ctx.beginPath(); ctx.moveTo(0, -75); ctx.quadraticCurveTo(-9, -76, -11, -70); ctx.quadraticCurveTo(-4, -72, 0, -72); ctx.quadraticCurveTo(4, -72, 11, -70); ctx.quadraticCurveTo(9, -76, 0, -75); ctx.fill();
+  ctx.fillStyle = 'rgba(255,120,120,.35)'; ell(-10, -75, 3, 2); ctx.fill(); ell(10, -75, 3, 2); ctx.fill();
+  ctx.restore();
+  // counter
+  const wg = ctx.createLinearGradient(0, -42, 0, 0); wg.addColorStop(0, '#c98a4a'); wg.addColorStop(1, '#8a5a32');
+  ctx.fillStyle = wg; rr(-56, -42, 112, 42, 4); ctx.fill();
+  ctx.fillStyle = '#e0a86a'; rr(-60, -46, 120, 8, 3); ctx.fill();
+  ctx.strokeStyle = 'rgba(70,40,15,.45)'; ctx.lineWidth = 1.5;
+  for (let i = 1; i < 4; i++) { ctx.beginPath(); ctx.moveTo(-56, -38 + i * 9.5); ctx.lineTo(56, -38 + i * 9.5); ctx.stroke(); }
+  // goods
+  for (const [gx, col] of [[-42, '#ff4d5e'], [-31, '#ff4d5e'], [30, '#3d9bff'], [41, '#3d9bff']]) {
+    ctx.fillStyle = '#b77b45'; ctx.fillRect(gx - 2, -58, 4, 4);
+    ctx.fillStyle = col; ell(gx, -50, 5, 5); ctx.fill(); ctx.fillRect(gx - 2, -55, 4, 3);
+  }
+  // awning
+  for (let i = 0; i < 8; i++) {
+    ctx.fillStyle = i % 2 ? '#fff3dc' : '#e8431c';
+    ctx.beginPath(); ctx.moveTo(-64 + i * 16, -118); ctx.lineTo(-48 + i * 16, -118); ctx.lineTo(-48 + i * 16, -104); ctx.arc(-56 + i * 16, -104, 8, 0, Math.PI); ctx.closePath(); ctx.fill();
+  }
+  ctx.fillStyle = '#a82a0e'; rr(-66, -124, 132, 8, 3); ctx.fill();
+  ctx.fillStyle = '#7a4a26'; rr(-26, -146, 52, 22, 5); ctx.fill();
+  ctx.fillStyle = '#ffe9b0'; ctx.font = '15px "ZCOOL KuaiLe", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('杂货铺', 0, -134);
+  ctx.restore();
+  // name tag
+  ctx.save(); ctx.font = '12px "PingFang SC","Microsoft YaHei",sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  const label = '商人 · 老枫', tw = ctx.measureText(label).width + 12;
+  ctx.fillStyle = 'rgba(20,14,28,.7)'; rr(SHOP.x - tw / 2, SHOP.y + 6, tw, 16, 3); ctx.fill();
+  ctx.fillStyle = '#ffe28a'; ctx.fillText(label, SHOP.x, SHOP.y + 14.5);
+  // prompt
+  if (nearShop() && running) {
+    const by = SHOP.y - 172 + Math.sin(time * 4) * 3, txt = '按 ↑ 打开商店';
+    ctx.font = '600 13px "PingFang SC","Microsoft YaHei",sans-serif';
+    const bw = ctx.measureText(txt).width + 18;
+    ctx.fillStyle = '#fff'; rr(SHOP.x - bw / 2, by - 13, bw, 26, 13); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(SHOP.x - 6, by + 12); ctx.lineTo(SHOP.x + 6, by + 12); ctx.lineTo(SHOP.x, by + 19); ctx.fill();
+    ctx.fillStyle = '#c4410e'; ctx.fillText(txt, SHOP.x, by);
+  }
   ctx.restore();
 }
 
@@ -1205,12 +1429,14 @@ function render(dt) {
   drawHouse();
   for (const t of trees) if (t.x > cam.x - 200 && t.x < cam.x + VW + 200) drawTree(t);
   drawPortal();
+  drawShop();
   for (const r of ropes) drawRope(r);
   drawGround();
   for (const pl of platforms) if (pl.x < cam.x + VW + 20 && pl.x + pl.w > cam.x - 20) drawPlatform(pl);
   for (const d of drops) drawDrop(d);
   for (const m of monsters) if (m.x > cam.x - 200 && m.x < cam.x + VW + 200) drawMob(m);
   drawPlayer();
+  for (const a of arrows) drawArrow(a);
   for (const f of fx) if (f.type !== 'banner') drawFx(f);
   for (const q of parts) {
     const a = 1 - q.t / q.life; ctx.globalAlpha = a; ctx.fillStyle = q.color;
@@ -1251,13 +1477,98 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 
+// ---------- shop ----------
+const nearShop = () => Math.abs(player.x - SHOP.x) < 70 && player.plat === GROUND_PLAT && !player.dead;
+const ICONS = {
+  hp: '<svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="4" rx="1" fill="#b77b45"/><path d="M8 7h8v3a6 6 0 1 1-8 0z" fill="#ff4d5e" stroke="#7a1020" stroke-width="1.2"/><ellipse cx="10" cy="14" rx="1.6" ry="2.4" fill="#ffd0d6"/></svg>',
+  mp: '<svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="4" rx="1" fill="#b77b45"/><path d="M8 7h8v3a6 6 0 1 1-8 0z" fill="#3d9bff" stroke="#10306a" stroke-width="1.2"/><ellipse cx="10" cy="14" rx="1.6" ry="2.4" fill="#d0e6ff"/></svg>',
+  warrior: c => `<svg viewBox="0 0 24 24"><path d="M5 19 17 5l2 .5-.5 2L6.5 20z" fill="${c[1]}" stroke="${c[2]}"/><path d="M4 17l3 3M3.5 21l2-2" stroke="#ffcf3a" stroke-width="2.4" stroke-linecap="round"/></svg>`,
+  archer: c => `<svg viewBox="0 0 24 24"><path d="M7 3q12 9 0 18" fill="none" stroke="${c[0]}" stroke-width="2.6" stroke-linecap="round"/><path d="M7 3v18" stroke="#fff" stroke-width=".8"/><path d="M4 12h16" stroke="#8a5a32" stroke-width="1.6"/><path d="M21 12l-4-2.4v4.8z" fill="#dfe8f0"/></svg>`,
+  armor: '<svg viewBox="0 0 24 24"><path d="M8 3 4 6l1.5 5L7 10v10h10V10l1.5 1L20 6l-4-3q-4 3-8 0z" fill="#9a8a70" stroke="#4e3e2a" stroke-width="1.2"/><path d="M12 6v14" stroke="#4e3e2a" stroke-width="1"/></svg>',
+};
+const priceBtn = (data, label, price, ok) => `<button class="sbtn" type="button" data-buy="${data}" ${ok ? '' : 'disabled'}>${label}<span class="coin"></span>${price.toLocaleString()}</button>`;
+function renderShop() {
+  const p = player, wn = WEAPONS[p.cls];
+  $('shopMeso').textContent = p.meso.toLocaleString();
+  let h = '<div class="ssec">消耗品</div><div class="srows">';
+  for (const it of POTIONS) {
+    h += `<div class="srow"><div class="sic">${ICONS[it.id]}</div><div><div class="sn">${it.name}<span class="own">持有 ${p[it.id + 'Pot']}</span></div><div class="sd">${it.desc}</div></div>
+      <div class="sbuy">${priceBtn(it.id + ':1', '买 1', it.price, p.meso >= it.price)}${priceBtn(it.id + ':10', '买 10', it.price * 10, p.meso >= it.price * 10)}</div></div>`;
+  }
+  h += '</div><div class="ssec">装备</div><div class="srows">';
+  const nw = p.wpn + 1, wIcon = ICONS[p.cls](p.cls === 'archer' ? BOW_COL[Math.min(nw, 4)] : BLADE_COL[Math.min(nw, 4)]);
+  if (nw < wn.length) {
+    const lvOk = p.level >= WPN_LV[nw];
+    h += `<div class="srow"><div class="sic">${wIcon}</div><div><div class="sn">${wn[nw]}<span class="own">当前 ${wn[p.wpn]}</span></div>
+      <div class="sd">攻击力 <b>×${WPN_MULT[nw].toFixed(2)}</b>（现在 ×${WPN_MULT[p.wpn].toFixed(2)}）${lvOk ? '' : ` · <span class="req">需要 Lv.${WPN_LV[nw]}</span>`}</div></div>
+      <div class="sbuy">${priceBtn('wpn', '购买', WPN_COST[nw], lvOk && p.meso >= WPN_COST[nw])}</div></div>`;
+  } else h += `<div class="srow"><div class="sic">${wIcon}</div><div><div class="sn">${wn[p.wpn]}</div><div class="sd">已经是最强的武器了</div></div></div>`;
+  const na = p.arm + 1;
+  if (na < ARMORS.length) {
+    const lvOk = p.level >= ARM_LV[na];
+    h += `<div class="srow"><div class="sic">${ICONS.armor}</div><div><div class="sn">${ARMORS[na]}<span class="own">当前 ${ARMORS[p.arm]}</span></div>
+      <div class="sd">每次受到的伤害 <b>−${ARM_DEF[na]}</b>（现在 −${ARM_DEF[p.arm]}）${lvOk ? '' : ` · <span class="req">需要 Lv.${ARM_LV[na]}</span>`}</div></div>
+      <div class="sbuy">${priceBtn('arm', '购买', ARM_COST[na], lvOk && p.meso >= ARM_COST[na])}</div></div>`;
+  } else h += `<div class="srow"><div class="sic">${ICONS.armor}</div><div><div class="sn">${ARMORS[p.arm]}</div><div class="sd">已经是最好的防具了</div></div></div>`;
+  $('shopBody').innerHTML = h + '</div>';
+}
+function buy(what) {
+  const p = player;
+  if (what === 'wpn' || what === 'arm') {
+    const next = p[what] + 1, cost = (what === 'wpn' ? WPN_COST : ARM_COST)[next], need = (what === 'wpn' ? WPN_LV : ARM_LV)[next];
+    if (cost === undefined || p.meso < cost || p.level < need) return;
+    p.meso -= cost; p[what] = next;
+    log(`购买了 ${what === 'wpn' ? WEAPONS[p.cls][next] : ARMORS[next]}`, 'it');
+  } else {
+    const [id, n] = what.split(':'), it = POTIONS.find(x => x.id === id), cost = it.price * +n;
+    if (p.meso < cost) return;
+    p.meso -= cost; p[id + 'Pot'] += +n;
+    log(`购买了 ${it.name} ×${n}`, 'it');
+  }
+  sfx.buy(); updateHud(); persist(); renderShop();
+}
+function openShop() {
+  shopOpen = true; running = false;
+  player.vx = 0; player.atkT = 0; for (const k in keys) keys[k] = false;
+  renderShop(); $('shop').hidden = false;
+  $('shopClose').focus({ preventScroll: true });
+}
+function closeShop() {
+  if (!shopOpen) return;
+  shopOpen = false; running = true; $('shop').hidden = true;
+}
+$('shopBody').addEventListener('click', e => { const b = e.target.closest('[data-buy]'); if (b && !b.disabled) buy(b.dataset.buy); });
+$('shopClose').addEventListener('click', closeShop);
+addEventListener('keydown', e => { if (shopOpen && (e.code === 'Escape' || e.code === 'KeyQ')) closeShop(); });
+$('shopBtn').addEventListener('click', e => {
+  e.currentTarget.blur();
+  if (!running) return;
+  if (nearShop()) openShop();
+  else log('[系统] 商人老枫在村口的杂货铺，走过去按 ↑ 就能购物', 'sys');
+});
+
+// ---------- class picker ----------
+let pickedCls = player.cls;
+function showPicked() { document.querySelectorAll('.cbtn').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.cls === pickedCls))); }
+document.querySelectorAll('.cbtn').forEach(b => b.addEventListener('click', () => { pickedCls = b.dataset.cls; showPicked(); }));
+function setClass(c) {
+  const p = player;
+  if (p.cls === c) return;
+  const hpR = p.hp / p.maxhp, mpR = p.mp / p.maxmp;
+  p.cls = c; recalcStats();
+  p.hp = Math.max(1, Math.round(p.maxhp * hpR)); p.mp = Math.round(p.maxmp * mpR);
+  log(`[系统] 职业变更为：${jobName(c, p.level)}`, 'sys');
+  updateHud(); persist();
+}
+
 // ---------- UI wiring ----------
 $('startBtn').addEventListener('click', () => {
   initAudio(); if (AC && AC.state === 'suspended') AC.resume();
+  setClass(pickedCls);
   $('title').hidden = true; running = true;
   log('[系统] 欢迎来到枫叶岛！向右走就是狩猎场', 'sys');
 });
-$('helpBtn').addEventListener('click', () => { running = false; $('title').hidden = false; $('startBtn').textContent = '继续冒险'; });
+$('helpBtn').addEventListener('click', () => { if (shopOpen) closeShop(); pickedCls = player.cls; showPicked(); running = false; $('title').hidden = false; $('startBtn').textContent = '继续冒险'; });
 $('muteBtn').addEventListener('click', e => { muted = !muted; e.currentTarget.textContent = muted ? '音效：关' : '音效：开'; e.currentTarget.blur(); });
 $('reviveBtn').addEventListener('click', () => {
   const p = player;
@@ -1271,7 +1582,7 @@ addEventListener('pagehide', persist);
 function start(data) {
   let saved = data && Object.keys(data).length ? data : null;
   if (!saved) { try { saved = JSON.parse(localStorage.getItem('maple-island-save') || 'null'); } catch (e) { saved = null; } }
-  if (saved) { applySave(saved); $('startBtn').textContent = '继续冒险'; $('saveNote').textContent = `已读取存档：Lv.${player.level}，金币 ${player.meso}`; }
+  if (saved) { applySave(saved); pickedCls = player.cls; showPicked(); $('startBtn').textContent = '继续冒险'; $('saveNote').textContent = `已读取存档：Lv.${player.level}，金币 ${player.meso}`; }
   for (const sp of spawns) { sp.mob = makeMob(sp); sp.mob.spawnT = 0; monsters.push(sp.mob); }
   resize();
   cam.x = clamp(player.x - VW / 2, 0, WORLD_W - VW); cam.y = Math.min(GROUND + 70 + hudPx / scale - VH, player.y - (VH - hudPx / scale) * .64);
