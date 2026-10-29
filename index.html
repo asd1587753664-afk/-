@@ -159,6 +159,25 @@ body { touch-action: none; user-select: none; -webkit-user-select: none; }
 .sfoot { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 14px; font-size: 11px; color: var(--muted); }
 @media (max-width: 480px) { .srow { grid-template-columns: 40px minmax(0, 1fr); } .sbuy { grid-column: 1 / -1; justify-content: flex-start; } }
 @media (prefers-reduced-motion: reduce) { #log div { animation: none; } }
+/* settings, world map, NPC talk */
+.opt { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 10px; border-radius: 10px; background: rgba(0,0,0,.22); border: 1px solid rgba(255,255,255,.06); font-size: 14px; font-weight: 700; }
+.opt small { display: block; font-size: 11px; font-weight: 400; color: var(--muted); }
+.seg { display: inline-flex; flex: none; border: 1px solid #6d5a86; border-radius: 8px; overflow: hidden; }
+.seg button { font: 600 12px var(--font-body); color: var(--muted); background: #1a1224; border: 0; padding: 6px 12px; cursor: pointer; }
+.seg button + button { border-left: 1px solid #6d5a86; }
+.seg button[aria-pressed="true"] { background: linear-gradient(#ffa149, var(--maple-deep)); color: #fff; }
+.seg button:focus-visible { outline: 2px solid var(--gold); outline-offset: -2px; }
+.mapico { width: 40px; height: 40px; border-radius: 8px; border: 1px solid #6d5a86; }
+.srow.here { border-color: var(--gold); }
+.sd .ok { color: #8fe86a; }
+#talkFace canvas { display: block; border-radius: 10px; background: rgba(0,0,0,.25); border: 1px solid #6d5a86; }
+.say { margin: 12px 0 10px; padding: 12px 14px; border-radius: 10px; background: #fff7e8; color: #3b2414; font-size: 14px; line-height: 1.65; }
+.say b { color: var(--maple-deep); }
+.qcard { padding: 10px 12px; border-radius: 10px; background: rgba(0,0,0,.25); border: 1px solid rgba(255,220,160,.25); font-size: 13px; line-height: 1.6; }
+.qcard .qn { font-weight: 700; color: var(--gold); }
+.qcard .qr { color: var(--muted); font-size: 12px; }
+#npcQuest { margin-top: 4px; padding-top: 4px; border-top: 1px dashed rgba(255,220,160,.25); }
+#npcQuestTxt.done { color: #8fe86a; }
 </style>
 </head>
 <body>
@@ -166,14 +185,15 @@ body { touch-action: none; user-select: none; -webkit-user-select: none; }
 
 <div id="top">
   <div class="mini"><div class="mapname" id="mapName">枫叶村 · 东郊狩猎场</div><canvas id="minimap"></canvas></div>
-  <div class="quest"><div class="qt">讨伐任务</div><div id="questTxt">击败 <b>0/50</b> 只怪物，引出蘑菇王</div></div>
+  <div class="quest"><div class="qt">讨伐任务</div><div id="questTxt">击败 <b>0/50</b> 只怪物，引出蘑菇王</div>
+    <div id="npcQuest" hidden><div class="qt">村长委托</div><div id="npcQuestTxt"></div></div></div>
   <div id="rotate" hidden>横过手机来玩，视野更大</div>
 </div>
 <div id="tools">
   <button class="tbtn" id="shopBtn" type="button">商店</button>
   <button class="tbtn" id="bookBtn" type="button">图鉴</button>
-  <button class="tbtn" id="musicBtn" type="button" aria-pressed="true">音乐</button>
-  <button class="tbtn" id="muteBtn" type="button" aria-pressed="true">音效</button>
+  <button class="tbtn" id="mapBtn" type="button">地图</button>
+  <button class="tbtn" id="setBtn" type="button">设置</button>
   <button class="tbtn" id="helpBtn" type="button">说明</button>
 </div>
 <div id="bossbar" hidden><div class="bn" id="bossName">蘑菇王 · Lv.20</div><div class="bt"><i id="bossFill"></i></div></div>
@@ -225,13 +245,53 @@ body { touch-action: none; user-select: none; -webkit-user-select: none; }
       <kbd>X / Ctrl</kbd><span>普通攻击（按住连击：剑士三段连招）</span>
       <kbd>Z</kbd><span id="zKey">技能·连斩（耗 MP，攻击多个怪物）</span>
       <kbd>V / 3</kbd><span id="vKey">增益技能</span>
+      <kbd>空中再按跳</kbd><span id="aKey">二段跳（Lv.10 一转后解锁）</span>
       <kbd>F / Shift</kbd><span id="fKey">终极技能（Lv.30 二转后解锁）</span>
-      <kbd>↑</kbd><span>在商人旁打开商店，在传送门前往其他地图</span>
+      <kbd>↑</kbd><span>和 NPC 说话 / 打开商店 / 进入传送门</span>
+      <kbd>M</kbd><span>世界地图：付金币传送到去过的地方</span>
       <kbd>1 / 2</kbd><span>喝红药 / 蓝药</span>
     </div>
     <button class="btn" id="startBtn" type="button">开始冒险</button>
     <div class="note" id="saveNote">进度会自动保存在这台设备的浏览器里</div>
     <button class="lnk" id="resetBtn" type="button" hidden>删除存档，重新开始</button>
+  </div>
+</div>
+
+<div class="ov" id="settings" hidden>
+  <div class="card shop" role="dialog" aria-labelledby="setTitle">
+    <div class="shead"><div><h2 id="setTitle">设置</h2><div class="sw">设置会保存在这台设备上</div></div></div>
+    <div class="ssec">声音</div>
+    <div class="srows">
+      <div class="opt"><span>背景音乐</span><div class="seg" data-set="music"><button type="button" data-v="1">开</button><button type="button" data-v="0">关</button></div></div>
+      <div class="opt"><span>音效</span><div class="seg" data-set="sfx"><button type="button" data-v="1">开</button><button type="button" data-v="0">关</button></div></div>
+    </div>
+    <div class="ssec">画面</div>
+    <div class="srows">
+      <div class="opt"><span>屏幕震动<small>容易头晕可以关掉</small></span><div class="seg" data-set="shake"><button type="button" data-v="1">开</button><button type="button" data-v="0">关</button></div></div>
+    </div>
+    <div class="ssec">自动喝药</div>
+    <div class="srows">
+      <div class="opt"><span>红药<small>HP 低于这个比例时自动喝</small></span><div class="seg" data-set="autoHp"><button type="button" data-v="0">关</button><button type="button" data-v="0.3">30%</button><button type="button" data-v="0.5">50%</button></div></div>
+      <div class="opt"><span>蓝药<small>MP 低于这个比例时自动喝</small></span><div class="seg" data-set="autoMp"><button type="button" data-v="0">关</button><button type="button" data-v="0.3">30%</button><button type="button" data-v="0.5">50%</button></div></div>
+    </div>
+    <div class="sfoot"><span>Esc 返回游戏</span><button class="btn" id="setClose" type="button" style="font-size:18px;padding:6px 26px">关闭</button></div>
+  </div>
+</div>
+
+<div class="ov" id="worldmap" hidden>
+  <div class="card shop" role="dialog" aria-labelledby="mapTitle">
+    <div class="shead"><div><h2 id="mapTitle">世界地图</h2><div class="sw">去过的地方可以付金币，坐传送石直接过去</div></div><div class="meso"><span class="coin"></span><span id="mapMeso">0</span></div></div>
+    <div class="srows" id="mapList" style="margin-top:12px"></div>
+    <div class="sfoot"><span>M 打开 · Esc 关闭</span><button class="btn" id="mapClose" type="button" style="font-size:18px;padding:6px 26px">关闭</button></div>
+  </div>
+</div>
+
+<div class="ov" id="talk" hidden>
+  <div class="card shop" role="dialog" aria-labelledby="talkName">
+    <div class="shead"><span id="talkFace"></span><div><h2 id="talkName">村长 · 枫奶奶</h2><div class="sw" id="talkSub"></div></div></div>
+    <div class="say" id="talkText"></div>
+    <div id="talkQuest"></div>
+    <div class="sfoot"><span>Esc 关闭</span><div class="sbuy" id="talkBtns"></div></div>
   </div>
 </div>
 
@@ -405,13 +465,13 @@ let MAP = MAPS[0], TH = THEMES.autumn, platforms = [], allPlats = [GROUND_PLAT],
 // ---------- classes & equipment ----------
 const CLASSES = {
   warrior: { hpLv: 24, mpLv: 9, skill: '连斩', skillDesc: '技能·连斩（耗 MP，攻击多个怪物）', crit: .16, jobs: ['见习剑士', '剑客', '勇士'], buff: { name: '愤怒之火', desc: '30 秒内攻击力 +25%', dmg: 1.25, crit: 0, col: '#ff6a3a' },
-    ult: { name: '破天斩', desc: '高举大剑劈向地面，冲击波横扫前方最多 10 只怪物', col: '#ffb347' } },
+    ult: { name: '破天斩', desc: '高举大剑劈向地面，冲击波横扫前方最多 10 只怪物', col: '#ffb347' }, move: { name: '二段跳', desc: '空中再按一次跳跃，向前冲刺一大段' } },
   archer:  { hpLv: 18, mpLv: 12, skill: '穿透箭', skillDesc: '技能·穿透箭（耗 MP，射穿一排怪物）', crit: .24, jobs: ['见习弓手', '猎人', '射手'], buff: { name: '集中术', desc: '30 秒内暴击率 +15%、攻击力 +10%', dmg: 1.1, crit: .15, col: '#8fe86a' },
-    ult: { name: '箭雨', desc: '朝天射出一轮箭，箭雨覆盖前方一大片区域', col: '#d8ff9a' } },
+    ult: { name: '箭雨', desc: '朝天射出一轮箭，箭雨覆盖前方一大片区域', col: '#d8ff9a' }, move: { name: '二段跳', desc: '空中再按一次跳跃，向前冲刺一大段' } },
   mage:    { hpLv: 14, mpLv: 20, skill: '雷电术', skillDesc: '技能·雷电术（耗 MP，召唤落雷劈中前方一片怪物）', crit: .12, jobs: ['见习法师', '魔法师', '大魔导士'], buff: { name: '魔法盾', desc: '30 秒内受到的伤害 −40%', dmg: 1, crit: 0, def: .4, col: '#9a7aff' },
-    ult: { name: '流星火雨', desc: '召唤三颗陨石砸向前方，大范围爆炸', col: '#ff8a4a' } },
+    ult: { name: '流星火雨', desc: '召唤三颗陨石砸向前方，大范围爆炸', col: '#ff8a4a' }, move: { name: '瞬移', desc: '空中再按一次跳跃，向前瞬移；按住 ↑ 则向上瞬移（耗少量 MP）' } },
 };
-const ULT_LV = 30, ULT_CD = 12;
+const ULT_LV = 30, ULT_CD = 12, MOVE_LV = 10;
 const WEAPONS = { warrior: ['新手剑', '铁剑', '钢刀', '秘银剑', '枫叶大剑', '炎龙巨剑'], archer: ['新手弓', '猎人弓', '复合弓', '精灵长弓', '枫叶神弓', '炎龙战弓'], mage: ['新手法杖', '橡木杖', '水晶杖', '星辰法杖', '枫叶魔杖', '炎龙法杖'] };
 const WPN_MULT = [1, 1.3, 1.65, 2.1, 2.7, 3.5], WPN_COST = [0, 300, 1200, 4000, 12000, 40000], WPN_LV = [1, 5, 10, 15, 20, 30];
 const ARMORS = ['布衣', '皮甲', '锁子甲', '骑士铠甲', '炎龙铠甲'], ARM_DEF = [0, 4, 10, 18, 30], ARM_COST = [0, 250, 1000, 3500, 15000], ARM_LV = [1, 5, 10, 15, 30];
@@ -425,6 +485,32 @@ const PETS = {
   bunny: { name: '雪兔棉棉', price: 7000, desc: '跑得更快，捡东西的范围更大', range: 1.5 },
 };
 const BOSS_TYPES = new Set(['boss', 'stumpking', 'yetiking', 'demon']);
+// The village elder's quest chain (Maple Island style): collect drops that only fall while the
+// quest is active, or take down each region's boss. One quest at a time, in order.
+const QUESTS = [
+  { name: '蜗牛壳', lv: 1, item: { id: 'shell', name: '蜗牛壳', from: ['snail'] }, n: 10, reward: { exp: 50, meso: 300, hp: 10 },
+    ask: '年轻人，村外的蜗牛又多起来了。帮奶奶收集 <b>10 个蜗牛壳</b>吧，我拿来熬汤。', done: '哎呀，这么快就收齐了！这些拿去，路上用得着。' },
+  { name: '水灵露珠', lv: 4, item: { id: 'dew', name: '水灵露珠', from: ['slime'] }, n: 10, reward: { exp: 150, meso: 500, mp: 10 },
+    ask: '绿水灵身上会掉下亮晶晶的露珠，浇花最好了。帮我带 <b>10 颗水灵露珠</b>回来。', done: '花园又要开花啦，谢谢你。' },
+  { name: '蘑菇伞', lv: 7, item: { id: 'cap', name: '蘑菇伞', from: ['mush', 'bluemush'] }, n: 15, reward: { exp: 350, meso: 900, hp: 15 },
+    ask: '冬天快到了，村里要囤些干蘑菇。花蘑菇和蓝蘑菇都行，收集 <b>15 片蘑菇伞</b>。', done: '够大家吃一整个冬天了！' },
+  { name: '讨伐蘑菇王', lv: 10, kill: 'boss', n: 1, reward: { exp: 1000, meso: 2000, hp: 20, mp: 20 },
+    ask: '狩猎场深处藏着个大家伙。打倒 50 只怪物它就会现身，去把 <b>蘑菇王</b>打倒吧！它跳起来砸地之前会先蹲下，看见红圈就赶紧跳开。', done: '真不愧是我看好的孩子！村子安全多了。' },
+  { name: '嫩树枝', lv: 12, item: { id: 'twig', name: '嫩树枝', from: ['stump'] }, n: 15, reward: { exp: 800, meso: 2500, hp: 20 },
+    ask: '蘑菇森林的树桩怪头上会长出嫩枝，能做上好的弓。去带 <b>15 根嫩树枝</b>回来。它们生气了会砸地，跳起来就能躲开。', done: '好结实的树枝！' },
+  { name: '毒孢子', lv: 15, item: { id: 'spore', name: '毒孢子', from: ['poisonmush'] }, n: 15, reward: { exp: 1200, meso: 3500, hp: 25, mp: 25 },
+    ask: '毒蘑菇会朝人喷孢子，小心别被打中。收集 <b>15 个毒孢子</b>，奶奶给大家做解毒药。', done: '有了这些，村里人就不怕中毒了。' },
+  { name: '讨伐树桩王', lv: 18, kill: 'stumpking', n: 1, reward: { exp: 3000, meso: 6000, hp: 30 },
+    ask: '森林的守护者树桩王发狂了，去让它清醒清醒——打倒 <b>树桩王</b>。', done: '森林又恢复平静了，谢谢你。' },
+  { name: '硬雪球', lv: 21, item: { id: 'snowball', name: '硬雪球', from: ['penguin', 'snowslime'] }, n: 20, reward: { exp: 2200, meso: 6000, hp: 30 },
+    ask: '冰雪峡谷的企鹅兵会扔雪球，还挺疼的。收集 <b>20 个硬雪球</b>，村里的孩子们想打雪仗。', done: '孩子们要高兴坏了！' },
+  { name: '讨伐雪人王', lv: 25, kill: 'yetiking', n: 1, reward: { exp: 5000, meso: 12000, hp: 40, mp: 40 },
+    ask: '寒风坡的雪人王把山路都堵住了，去打倒 <b>雪人王</b>，让商队能过去。', done: '山路通了！你的名字已经传到隔壁村了。' },
+  { name: '熔岩核心', lv: 30, item: { id: 'core', name: '熔岩核心', from: ['lavaslime', 'golem'] }, n: 20, reward: { exp: 4500, meso: 15000, hp: 40, mp: 40 },
+    ask: '熔岩洞窟里的怪物体内有发烫的核心。带回 <b>20 个熔岩核心</b>，我想弄清楚那里到底发生了什么。', done: '这些核心在发抖……洞窟深处一定有个可怕的东西。' },
+  { name: '最后的战斗', lv: 33, kill: 'demon', n: 1, reward: { exp: 15000, meso: 30000, hp: 50, mp: 50 },
+    ask: '是炎魔巴洛在作怪。孩子，整个枫叶岛都拜托你了——去打倒 <b>炎魔巴洛</b>！', done: '你做到了……枫叶岛的英雄，奶奶为你骄傲。' },
+];
 
 // ---------- monster types ----------
 const TYPES = {
@@ -432,14 +518,14 @@ const TYPES = {
   slime:      { name: '绿水灵',     hp: 55,    exp: 10,   atk: 11,  speed: 42, w: 40,  h: 36,  meso: [6, 16],      lv: 4,  hop: 'slime' },
   mush:       { name: '花蘑菇',     hp: 120,   exp: 19,   atk: 17,  speed: 55, w: 46,  h: 52,  meso: [12, 30],     lv: 8,  hop: 'mush' },
   bluemush:   { name: '蓝蘑菇',     hp: 240,   exp: 34,   atk: 25,  speed: 58, w: 46,  h: 52,  meso: [25, 55],     lv: 12, hop: 'mush' },
-  poisonmush: { name: '毒蘑菇',     hp: 320,   exp: 46,   atk: 30,  speed: 56, w: 46,  h: 52,  meso: [30, 65],     lv: 14, hop: 'mush' },
-  stump:      { name: '树桩怪',     hp: 420,   exp: 58,   atk: 34,  speed: 36, w: 50,  h: 50,  meso: [35, 80],     lv: 16 },
+  poisonmush: { name: '毒蘑菇',     hp: 320,   exp: 46,   atk: 30,  speed: 56, w: 46,  h: 52,  meso: [30, 65],     lv: 14, hop: 'mush', skill: 'throw', shot: 'spore' },
+  stump:      { name: '树桩怪',     hp: 420,   exp: 58,   atk: 34,  speed: 36, w: 50,  h: 50,  meso: [35, 80],     lv: 16, skill: 'slam' },
   snowslime:  { name: '雪球史莱姆', hp: 600,   exp: 85,   atk: 44,  speed: 44, w: 40,  h: 36,  meso: [50, 110],    lv: 21, hop: 'slime' },
-  penguin:    { name: '企鹅兵',     hp: 760,   exp: 105,  atk: 50,  speed: 70, w: 40,  h: 48,  meso: [60, 130],    lv: 23 },
-  yeti:       { name: '小雪人',     hp: 1200,  exp: 160,  atk: 62,  speed: 48, w: 54,  h: 62,  meso: [90, 180],    lv: 26, hop: 'big' },
-  lavaslime:  { name: '熔岩史莱姆', hp: 1700,  exp: 220,  atk: 74,  speed: 46, w: 40,  h: 36,  meso: [120, 240],   lv: 31, hop: 'slime', artH: 58 },
+  penguin:    { name: '企鹅兵',     hp: 760,   exp: 105,  atk: 50,  speed: 70, w: 40,  h: 48,  meso: [60, 130],    lv: 23, skill: 'throw', shot: 'snow' },
+  yeti:       { name: '小雪人',     hp: 1200,  exp: 160,  atk: 62,  speed: 48, w: 54,  h: 62,  meso: [90, 180],    lv: 26, hop: 'big', skill: 'slam' },
+  lavaslime:  { name: '熔岩史莱姆', hp: 1700,  exp: 220,  atk: 74,  speed: 46, w: 40,  h: 36,  meso: [120, 240],   lv: 31, hop: 'slime', artH: 58, skill: 'throw', shot: 'fire' },
   firebat:    { name: '火焰蝙蝠',   hp: 1400,  exp: 240,  atk: 80,  speed: 90, w: 44,  h: 34,  meso: [130, 250],   lv: 33, fly: true },
-  golem:      { name: '熔岩魔像',   hp: 2600,  exp: 340,  atk: 92,  speed: 34, w: 56,  h: 72,  meso: [180, 340],   lv: 35 },
+  golem:      { name: '熔岩魔像',   hp: 2600,  exp: 340,  atk: 92,  speed: 34, w: 56,  h: 72,  meso: [180, 340],   lv: 35, skill: 'slam' },
   boss:       { name: '蘑菇王',     hp: 5200,  exp: 900,  atk: 42,  speed: 42, w: 150, h: 150, meso: [400, 700],   lv: 20 },
   stumpking:  { name: '树桩王',     hp: 14000, exp: 2400, atk: 70,  speed: 36, w: 150, h: 150, meso: [900, 1500],  lv: 30 },
   yetiking:   { name: '雪人王',     hp: 26000, exp: 5200, atk: 100, speed: 40, w: 160, h: 180, meso: [1800, 3000], lv: 40 },
@@ -456,14 +542,15 @@ const player = {
   x: 260, y: GROUND, vx: 0, vy: 0, face: 1, onGround: true, plat: GROUND_PLAT,
   level: 1, exp: 0, hp: 50, maxhp: 50, mp: 30, maxmp: 30, meso: 0, hpPot: 5, mpPot: 5, kills: MAPS.map(() => 0),
   cls: 'warrior', wpn: 0, arm: 0, mapId: 0, pets: [], pet: null, book: {}, orb: null, buffT: 0, combo: 0, lastAtkEnd: -9, trail: [], move: null, hitIdx: 0,
-  ultCD: 0, ultQ: -9, playT: 0, cleared: false,
+  ultCD: 0, ultQ: -9, playT: 0, cleared: false, autoPotT: 0, q: { i: 0, on: false, n: 0 }, visited: [0], coyote: 0, jumpBuf: 0, airJump: false, dashT: 0, skQ: -9, atkQ: -9,
   atkT: 0, atkDur: 0, atkKind: '', hitDone: false, atkCD: 0, invul: 0, kbT: 0, climb: null,
   dropT: 0, dropFrom: null, walkT: 0, climbT: 0, regenT: 0, dead: false, blinkT: 3,
 };
-let monsters = [], drops = [], parts = [], nums = [], fx = [], pendingHits = [], arrows = [], hazards = [];
+let monsters = [], drops = [], parts = [], nums = [], fx = [], pendingHits = [], arrows = [], hazards = [], mobShots = [];
 let petObj = null, bookOpen = false, endingOpen = false, endingAt = 0;
+const COMBO_WINDOW = 5;
+let killCombo = 0, comboT = 0, comboPop = 0;
 let shopOpen = false, hitStop = 0, miniTick = 0, trans = null, worldInv = null;
-const FILTER_OK = 'filter' in CanvasRenderingContext2D.prototype;
 let boss = null, bossSpawned = false;
 const cam = { x: 0, y: GROUND + 120, shake: 0 };
 let running = false, time = 0;
@@ -474,9 +561,13 @@ function applySave(s) {
   for (const k of ['level', 'exp', 'meso', 'hpPot', 'mpPot', 'wpn', 'arm', 'playT']) if (Number.isFinite(s[k])) player[k] = s[k];
   if (CLASSES[s.cls]) player.cls = s.cls;
   player.cleared = s.cleared === true;
+  if (s.q && Number.isInteger(s.q.i)) { const i = clamp(s.q.i, 0, QUESTS.length); player.q = { i, on: !!s.q.on && i < QUESTS.length, n: clamp(Number(s.q.n) || 0, 0, (QUESTS[i] || { n: 0 }).n) }; }
   if (Number.isFinite(s.kills)) player.kills = MAPS.map((_, i) => i ? 0 : s.kills);
   else if (Array.isArray(s.kills)) player.kills = MAPS.map((_, i) => Number(s.kills[i]) || 0);
   if (Number.isInteger(s.map) && MAPS[s.map]) player.mapId = s.map;
+  // older saves have no travel log: the maps are linear, so everything up to the current one was walked through
+  player.visited = Array.isArray(s.visited) ? s.visited.filter(i => MAPS[i]) : MAPS.map((_, i) => i).filter(i => i <= player.mapId);
+  if (!player.visited.includes(0)) player.visited.push(0);
   if (Array.isArray(s.pets)) player.pets = s.pets.filter(k => PETS[k]);
   if (PETS[s.pet] && player.pets.includes(s.pet)) player.pet = s.pet;
   if (s.book && typeof s.book === 'object') for (const k in TYPES) if (Number.isFinite(s.book[k])) player.book[k] = s.book[k];
@@ -490,7 +581,7 @@ function applySave(s) {
 function getSave() {
   const p = player;
   return { level: p.level, exp: p.exp, meso: p.meso, hpPot: p.hpPot, mpPot: p.mpPot, kills: p.kills, cls: p.cls, wpn: p.wpn, arm: p.arm, map: p.mapId, pets: p.pets, pet: p.pet, book: p.book,
-    cleared: p.cleared, playT: Math.round(p.playT) };
+    cleared: p.cleared, playT: Math.round(p.playT), q: p.q, visited: p.visited };
 }
 function persist() { try { localStorage.setItem('maple-island-save', JSON.stringify(getSave())); } catch (e) {} }
 function recalcStats() {
@@ -566,6 +657,9 @@ const sfx = {
   shoot: () => { tone(900, .09, 'triangle', .06, -500); noise(.05, .05); },
   magic: () => { tone(660, .14, 'sine', .06, 400); tone(990, .1, 'triangle', .03, 300, .03); },
   thunder: () => { noise(.35, .22); tone(90, .45, 'sawtooth', .06, -40); },
+  thud: () => { noise(.2, .12); tone(70, .25, 'sine', .08, -30); },
+  toss: () => tone(520, .1, 'triangle', .04, -220),
+  alert: () => tone(1100, .06, 'square', .025),
   charge: () => tone(300, .3, 'sine', .04, 500),
   buy: () => { tone(784, .07, 'square', .04); tone(1175, .14, 'square', .04, 0, .07); },
   boss: () => { tone(110, .6, 'sawtooth', .08, -40); tone(82, .8, 'square', .05, 0, .2); },
@@ -573,6 +667,8 @@ const sfx = {
   ult: () => { tone(220, .5, 'sawtooth', .05, 440); tone(330, .5, 'triangle', .06, 660, .1); noise(.3, .08, .2); },
   roar: () => { tone(90, .9, 'sawtooth', .09, -40); tone(60, 1, 'square', .05, -20, .1); noise(.5, .1, .05); },
   warn: () => tone(880, .08, 'square', .03),
+  fjump: () => { noise(.16, .08); tone(420, .16, 'sine', .06, 520); },
+  blink: () => { tone(1320, .12, 'sine', .05, -600); tone(1760, .1, 'triangle', .03, 0, .05); },
   clear: () => [523, 659, 784, 1047, 1319, 1568].forEach((f, i) => tone(f, .4, 'triangle', .08, 0, i * .12)),
 };
 
@@ -610,7 +706,7 @@ function makeMob(sp) {
     type: sp.type, T, sp, minX, maxX, x: rand(minX, maxX), y: pl.y, dir: Math.random() < .5 ? -1 : 1,
     hp: T.hp, maxhp: T.hp, state: 'walk', stateT: rand(1, 3), hopY: 0, hopV: 0, squash: 0, hitT: 0, kbV: 0,
     alive: true, deadT: 0, aggro: false, anim: Math.random() * 10, showBar: 0, spawnT: .5,
-    shell: ['#5fbf4a', '#4f8fe0', '#e05a4a'][irand(0, 2)], jumpT: rand(2, 4),
+    shell: ['#5fbf4a', '#4f8fe0', '#e05a4a'][irand(0, 2)], jumpT: rand(2, 4), skillCD: rand(1.5, 3),
   };
   if (T.fly) { m.flyBase = rand(22, 40); m.flyH = m.hopY = m.flyBase; }
   if (!sp.boss && Math.random() < .05 && monsters.filter(x => x.elite && x.alive).length < 2) makeElite(m);
@@ -645,9 +741,17 @@ function killMob(m) {
   const T = m.T, p = player;
   const gain = Math.round(T.exp * (m === boss ? 1 : clamp(1.15 - (p.level - T.lv) * .05, .4, 1.3)));
   gainExp(gain);
+  // kill streak (MapleStory combo kill): every 10th kill in a row pays out bonus EXP
+  killCombo = comboT > 0 ? killCombo + 1 : 1; comboT = COMBO_WINDOW; comboPop = 1;
+  if (killCombo % 10 === 0) {
+    const bonus = Math.round(gain * Math.min(5, killCombo / 10));
+    gainExp(bonus); popNum(p.x, p.y - 104, bonus, 'exp');
+    log(`[连杀] ${killCombo} 连杀！额外经验 +${bonus}`, 'xp'); sfx.coin();
+  }
   const seen = p.book[m.type] || 0; p.book[m.type] = seen + 1;
   if (seen + 1 === bookGoal(m.type)) { log(`[图鉴] ${T.name} 收集完成！伤害永久 +1%`, 'sys'); fx.push({ type: 'banner', text: `图鉴完成：${T.name}`, t: 0, life: 2 }); sfx.level(); }
   if (m.elite) log(`[系统] 击败了精英 ${T.name}！`, 'sys');
+  questKill(m);
   const mesoDrops = m === boss ? 14 : m.elite ? 4 : 1;
   for (let i = 0; i < mesoDrops; i++) dropItem(m.x, m.y - m.T.h / 2, 'meso', irand(T.meso[0], T.meso[1]) / (m === boss ? 7 : 1) | 0 || 1);
   if (Math.random() < (m === boss || m.elite ? 1 : .14)) dropItem(m.x, m.y - 20, 'hp', m === boss ? 5 : m.elite ? 2 : 1);
@@ -659,6 +763,7 @@ function killMob(m) {
     log('[系统] 讨伐成功！任务已重置，可以再次挑战。', 'sys');
     cam.shake = .5;
     if (MAP.boss.final && !p.cleared) endingAt = time + 2.8;
+    slowMo = .9; hitStop = 0;
   } else {
     m.sp.timer = rand(6, 9); m.sp.mob = null;
     if (!bossSpawned) p.kills[MAP.id]++;
@@ -680,12 +785,27 @@ function updateMobs(dt) {
     m.anim += dt; m.hitT = Math.max(0, m.hitT - dt); m.showBar = Math.max(0, m.showBar - dt); m.spawnT = Math.max(0, m.spawnT - dt);
     m.stateT -= dt;
     const sameLevel = Math.abs(p.y - m.y) < 70 && !p.dead;
-    if (m.stateT <= 0) {
+    // telegraphed specials: an angry mob stops, shows "!" and winds up before it slams or throws
+    if (T.skill && running) {
+      m.skillCD -= dt;
+      if (m.state === 'windup') {
+        m.windT -= dt;
+        if (T.skill === 'slam') m.squash = Math.max(m.squash, .22 * (1 - m.windT / m.windDur));
+        if (m.windT <= 0) { mobSkill(m); m.state = 'walk'; m.stateT = rand(.5, 1); m.skillCD = rand(3, 5); }
+      } else if (m.aggro && sameLevel && m.skillCD <= 0 && m.hopY === 0 && m.spawnT <= 0 && Math.abs(m.kbV) < 20) {
+        const dx = Math.abs(p.x - m.x), slam = T.skill === 'slam';
+        if (slam ? dx < T.w * .5 + 80 : dx > 70 && dx < 420) {
+          m.state = 'windup'; m.windT = m.windDur = slam ? .8 : .6; m.dir = Math.sign(p.x - m.x) || m.dir;
+          if (onScreen(m.x)) sfx.alert();
+        }
+      }
+    }
+    if (m.stateT <= 0 && m.state !== 'windup') {
       if (m.aggro && sameLevel) { m.state = 'walk'; m.dir = Math.sign(p.x - m.x) || 1; m.stateT = rand(.6, 1.2); }
       else if (Math.random() < .65) { m.state = 'walk'; m.dir = Math.random() < .5 ? -1 : 1; m.stateT = rand(1.5, 4); }
       else { m.state = 'idle'; m.stateT = rand(.8, 2.2); }
     }
-    const moving = m.state === 'walk' && Math.abs(m.kbV) < 20;
+    const moving = m.state === 'walk' && Math.abs(m.kbV) < 20 && !(m.crouchT > 0);
     m.x += ((moving ? m.dir * T.speed * (m.aggro ? 1.25 : 1) : 0) + m.kbV) * dt;
     m.kbV = approach(m.kbV, 0, 700 * dt);
     if (m.x < m.minX) { m.x = m.minX; m.dir = 1; }
@@ -722,7 +842,12 @@ function updateMobs(dt) {
       if (m.jumpT <= 0 && m.hopY === 0) {
         m.jumpT = m.raged ? rand(2.4, 3.6) : rand(3.5, 5.5);
         if (T.meteor && Math.random() < .55) castMeteors(m, m.raged ? 9 : 6);
-        else { m.hopV = 760; m.bigJump = true; }
+        else { m.crouchT = .5; m.bigJump = true; sfx.alert(); }
+      }
+      // crouch first so the leap (and the landing zone ring) can be read before it lands
+      if (m.crouchT > 0) {
+        m.crouchT -= dt; m.squash = Math.max(m.squash, .3 * (1 - m.crouchT / .5));
+        if (m.crouchT <= 0) m.hopV = 760;
       }
     }
     m.squash = approach(m.squash, 0, dt * 1.5);
@@ -767,6 +892,41 @@ function updateHazards(dt) {
   hazards = hazards.filter(h => h.t < MET_WARN + .1);
 }
 
+const onScreen = x => x > cam.x - 80 && x < cam.x + VW + 80;
+const SLAM_PAD = 80;
+function mobSkill(m) {
+  const T = m.T, p = player;
+  if (T.skill === 'slam') {
+    // the shockwave runs along the ground: jumping over it is the dodge
+    const R = T.w * .5 + SLAM_PAD + 20;
+    fx.push({ type: 'quake', x: m.x, y: m.y, t: 0, life: .45, r: R });
+    burst(m.x, m.y - 4, 14, ['#b88a5a', '#7a5432', '#e6c79a'], 240, 5, 600);
+    if (onScreen(m.x)) { cam.shake = Math.max(cam.shake, .18); sfx.thud(); }
+    if (running && !p.dead && p.invul <= 0 && p.onGround && Math.abs(p.y - m.y) < 24 && Math.abs(p.x - m.x) < R) hurtPlayer(T.atk * 1.1, Math.sign(p.x - m.x) || m.dir);
+    return;
+  }
+  // lob a ballistic shot at where the player stands now
+  const sx = m.x + m.dir * T.w * .3, sy = m.y - T.h * .7, tx = p.x, ty = p.y - 28;
+  const t = clamp(Math.abs(tx - sx) / 380, .5, 1.1), g = 900;
+  mobShots.push({ x: sx, y: sy, vx: (tx - sx) / t, vy: (ty - sy) / t - .5 * g * t, g, kind: T.shot, atk: T.atk, t: 0 });
+  if (onScreen(m.x)) sfx.toss();
+}
+const SHOT_COL = { snow: ['#ffffff', '#cfe6ff', '#8ab4e8'], spore: ['#f0d8ff', '#b07ae0', '#5a2a8a'], fire: ['#fff2a0', '#ff9a3a', '#e8431c'] };
+function updateMobShots(dt) {
+  const p = player;
+  for (const s of mobShots) {
+    s.t += dt;
+    const oy = s.y;
+    s.vy += s.g * dt; s.x += s.vx * dt; s.y += s.vy * dt;
+    let hit = false;
+    if (running && !p.dead && p.invul <= 0 && Math.abs(s.x - p.x) < 18 && s.y > p.y - 62 && s.y < p.y + 4) { hurtPlayer(s.atk, Math.sign(s.vx) || 1); hit = true; }
+    else if (s.vy > 0) for (const pl of allPlats) if (s.x >= pl.x && s.x <= pl.x + pl.w && oy <= pl.y && s.y >= pl.y) { s.y = pl.y; hit = true; break; }
+    if (hit) { s.done = true; burst(s.x, s.y - 4, 10, SHOT_COL[s.kind], 160, 4, 300); }
+    if (s.t > 3) s.done = true;
+  }
+  mobShots = mobShots.filter(s => !s.done);
+}
+
 // ---------- player ----------
 function gainExp(n) {
   const p = player;
@@ -779,6 +939,7 @@ function gainExp(n) {
     sfx.level();
     log(`[系统] 升级了！现在是 ${p.level} 级`, 'sys');
     if (p.level === 10 || p.level === 30) log(`[系统] 转职成功：${jobName(p.cls, p.level)}`, 'sys');
+    if (p.level === MOVE_LV) { const M = CLASSES[p.cls].move; log(`[系统] 习得「${M.name}」：${M.desc}`, 'sys'); fx.push({ type: 'banner', text: `一转！习得「${M.name}」`, t: 0, life: 2.6 }); }
     if (p.level === ULT_LV) { log(`[系统] 习得终极技能「${CLASSES[p.cls].ult.name}」，按 F / Shift 释放`, 'sys'); fx.push({ type: 'banner', text: `二转！习得「${CLASSES[p.cls].ult.name}」`, t: 0, life: 2.6 }); }
   }
 }
@@ -1018,6 +1179,7 @@ function pickDrop(d) {
   const p = player;
   d.taken = true;
   if (d.kind === 'meso') { p.meso += d.amount; log(`获得金币 (+${d.amount})`, 'ms'); sfx.coin(); }
+  else if (d.kind === 'q') questItem(d.item);
   else { p[d.kind + 'Pot'] += d.amount; log(`获得${d.kind === 'hp' ? '红色' : '蓝色'}药水 ×${d.amount}`, 'it'); sfx.item(); }
   updateHud();
 }
@@ -1042,10 +1204,31 @@ function updatePet(dt) {
   const pr = 30 * P.range;
   for (const d of drops) if (!d.taken && d.t > .45 && Math.abs(d.x - q.x) < pr && Math.abs(d.y - q.y) < 40) pickDrop(d);
 }
-function dropItem(x, y, kind, amount) {
-  drops.push({ x, y, vx: rand(-90, 90), vy: rand(-420, -300), kind, amount, t: 0, spin: Math.random() * 6, onGround: false });
+function dropItem(x, y, kind, amount, item) {
+  drops.push({ x, y, vx: rand(-90, 90), vy: rand(-420, -300), kind, amount, item, t: 0, spin: Math.random() * 6, onGround: false });
 }
 
+// 1st-job movement: warriors and archers flash-jump forward, mages blink (up if ↑ is held).
+function airSkill(up) {
+  const p = player, dir = keys.right ? 1 : keys.left ? -1 : p.face;
+  p.face = dir; p.airJump = true;
+  if (p.cls !== 'mage') {
+    p.vx = dir * 560; p.vy = Math.min(p.vy, -330); p.dashT = .32;
+    fx.push({ type: 'fjump', x: p.x, y: p.y - 26, face: dir, t: 0, life: .35 });
+    burst(p.x, p.y - 10, 8, ['#ffffff', '#e8f4ff'], 140, 4, 0);
+    sfx.fjump();
+    return;
+  }
+  const cost = 4 + Math.floor(p.level / 10);
+  if (p.mp < cost) { p.airJump = false; warnOnce('MP 不足'); return; }
+  p.mp -= cost; updateHud();
+  const ox = p.x, oy = p.y;
+  if (up) p.y -= 150; else p.x = clamp(p.x + dir * 170, 16, WORLD_W - 16);
+  p.vy = -120; p.vx = up ? 0 : dir * 120; p.dashT = .15;
+  for (const [x, y] of [[ox, oy], [p.x, p.y]]) fx.push({ type: 'blink', x, y: y - 30, t: 0, life: .4 });
+  burst(ox, oy - 30, 12, ['#d8c8ff', '#9a7aff', '#ffffff'], 160, 4, 0);
+  sfx.blink();
+}
 function updatePlayer(dt) {
   const p = player;
   p.blinkT -= dt; if (p.blinkT < -0.12) p.blinkT = rand(2, 5);
@@ -1068,6 +1251,12 @@ function updatePlayer(dt) {
   if (running && once.hp) usePotion('hp');
   if (running && once.mp) usePotion('mp');
   if (running && once.buff) castBuff();
+  // pet-style auto potion (settings): one gulp at a time below the chosen threshold
+  p.autoPotT -= dt;
+  if (running && p.autoPotT <= 0) {
+    if (SET.autoHp && p.hp < p.maxhp * SET.autoHp && p.hpPot > 0) { usePotion('hp'); p.autoPotT = .7; }
+    else if (SET.autoMp && p.mp < p.maxmp * SET.autoMp && p.mpPot > 0) { usePotion('mp'); p.autoPotT = .7; }
+  }
 
   // climbing
   if (p.climb) {
@@ -1086,10 +1275,12 @@ function updatePlayer(dt) {
   let dir = 0;
   if (!(attacking && p.onGround)) { if (L) dir -= 1; if (R) dir += 1; }
   if (dir && !attacking) p.face = dir;
-  if (p.kbT <= 0) {
+  p.dashT -= dt;
+  if (p.kbT <= 0 && !(p.dashT > 0 && !p.onGround)) {
     if (dir) p.vx = approach(p.vx, dir * 215, (p.onGround ? 2600 : 1000) * dt);
     else if (p.onGround) p.vx = approach(p.vx, 0, 2600 * dt);
   }
+  if (p.dashT > 0 && !p.onGround && Math.random() < dt * 60) parts.push({ x: p.x - p.face * rand(4, 18), y: p.y - rand(8, 50), vx: -p.vx * .2, vy: 0, life: .22, t: 0, size: rand(1.5, 3), color: p.cls === 'mage' ? '#d8c8ff' : '#ffffff', g: 0 });
 
   // grab rope
   if ((U || D) && !attacking) {
@@ -1100,11 +1291,15 @@ function updatePlayer(dt) {
     }
   }
 
-  // jump / drop down
-  if (ctl && keys.jump && p.onGround && !attacking) {
-    if (D && !p.plat.ground) { p.dropT = .3; p.dropFrom = p.plat; p.onGround = false; p.vy = 60; }
-    else if (!D) { p.vy = -790; p.onGround = false; sfx.jump(); }
-  }
+  // jump / drop down. Coyote time still accepts a jump just after running off a ledge,
+  // and the buffer keeps a press made just before landing or near the end of a swing.
+  if (p.onGround) { p.coyote = .1; p.airJump = false; } else p.coyote -= dt;
+  if (once.jump && running) p.jumpBuf = .13; else p.jumpBuf -= dt;
+  const canJump = p.onGround || (p.coyote > 0 && p.vy >= 0);
+  if (ctl && !attacking && canJump && (keys.jump || p.jumpBuf > 0)) {
+    if (D && p.onGround && !p.plat.ground) { p.dropT = .3; p.dropFrom = p.plat; p.onGround = false; p.vy = 60; p.jumpBuf = 0; p.coyote = 0; }
+    else if (!D) { p.vy = -790; p.onGround = false; p.coyote = 0; p.jumpBuf = 0; sfx.jump(); }
+  } else if (ctl && once.jump && !p.onGround && p.coyote <= 0 && !p.airJump && p.level >= MOVE_LV) { airSkill(U); p.jumpBuf = 0; }
 
   // physics
   const oy = p.y, wasGround = p.onGround, fallV = p.vy;
@@ -1122,11 +1317,14 @@ function updatePlayer(dt) {
   if (p.onGround && Math.abs(p.vx) > 20) p.walkT += dt; else p.walkT = 0;
 
   // attacks
+  // taps are buffered briefly, so a quick tap or one made during the previous swing still lands
   if (once.ult) p.ultQ = time;
+  if (once.skill) p.skQ = time;
+  if (once.attack) p.atkQ = time;
   if (ctl && !attacking && p.atkCD <= 0) {
     if ((keys.ult || time - p.ultQ < .45) && canUlt(once.ult)) { p.ultQ = -9; startAttack('ult'); }
-    else if (keys.skill) startAttack('skill');
-    else if (keys.attack) startAttack('basic');
+    else if (keys.skill || time - p.skQ < .25) { p.skQ = -9; startAttack('skill'); }
+    else if (keys.attack || time - p.atkQ < .25) { p.atkQ = -9; startAttack('basic'); }
   } else if (running && once.ult && !p.dead) canUlt(true);
   if (p.atkT > 0) {
     p.atkT -= dt;
@@ -1160,6 +1358,7 @@ function updatePlayer(dt) {
   // shop & portals
   if (running && once.up && p.onGround && !trans) {
     if (nearShop()) { openShop(); return; }
+    if (nearElder()) { openTalk(); return; }
     const pt = nearPortal();
     if (pt) usePortal(pt);
   }
@@ -1179,7 +1378,10 @@ function updateWorld(dt) {
   updateMobs(dt);
   updateArrows(dt);
   updateHazards(dt);
+  updateMobShots(dt);
   if (running) { updatePet(dt); if (!trans) player.playT += dt; }
+  if (running && comboT > 0) { comboT -= dt; if (comboT <= 0) killCombo = 0; }
+  comboPop = Math.max(0, comboPop - dt * 5);
   if (endingAt && time >= endingAt && running && !player.dead && !trans) { endingAt = 0; showEnding(); }
   for (const d of DECOR) if (d.t === 'vent' && Math.abs(d.x - cam.x - VW / 2) < VW && Math.random() < dt * 5)
     parts.push({ x: d.x + rand(-6, 6), y: GROUND - 6, vx: rand(-20, 20), vy: rand(-140, -80), life: rand(.6, 1.1), t: 0, size: rand(2, 3.5), color: Math.random() < .5 ? '#ffb347' : '#ff6a2a', g: -20 });
@@ -1256,9 +1458,11 @@ function updateHud() {
   if (hudCache.ultCls !== p.cls) { hudCache.ultCls = p.cls; $('ultIcon').innerHTML = ULT_ICONS[p.cls]; $('ultSlot').title = U.name; }
   $('ultSlot').classList.toggle('lock', locked);
   setTxt('ultTime', locked ? `Lv${ULT_LV}` : p.ultCD > 0 ? String(Math.ceil(p.ultCD)) : '');
-  setTxt('ultBtn', U.name.slice(0, 2)); setTxt('fKey', ultDesc(p.cls));
+  setTxt('ultBtn', U.name.slice(0, 2)); setTxt('fKey', ultDesc(p.cls)); setTxt('aKey', moveDesc(p.cls));
+  updateQuestHud();
   updateUltSlot();
 }
+const moveDesc = c => { const M = CLASSES[c].move; return `${M.name}：${M.desc}（Lv.${MOVE_LV} 一转解锁）`; };
 const ultDesc = c => { const U = CLASSES[c].ult; return `${U.name}：${U.desc}（Lv.${ULT_LV} 二转解锁，冷却 ${ULT_CD} 秒）`; };
 
 // ---------- drawing: shared ----------
@@ -1729,6 +1933,73 @@ function stallFrontArt() {
   ctx.font = '16px "ZCOOL KuaiLe", "PingFang SC", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillStyle = '#ffe9b0'; ctx.fillText('杂货铺', 0, -145);
 }
+// Quest item icons, centred near (0, -2), about 18 units across.
+function qItemArt(id) {
+  if (id === 'shell') {
+    ell(0, -2, 8, 7.5); ctx.fillStyle = radg(-3, -5, 1, 0, -2, 9, ['#fff0c8', '#e8a85a', '#a8642a']); ctx.fill(); outline(1.3);
+    ctx.strokeStyle = 'rgba(90,40,10,.7)'; ctx.lineWidth = 1.4; ctx.beginPath();
+    for (let a = 0; a < 9; a += .3) { const r = .6 + a * .75, x = Math.cos(a) * r, y = -2 + Math.sin(a) * r * .95; a ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
+    ctx.stroke();
+  } else if (id === 'dew') {
+    ctx.beginPath(); ctx.moveTo(0, -12); ctx.quadraticCurveTo(8, -2, 6, 3); ctx.arc(0, 2, 6.3, .2, Math.PI - .2); ctx.quadraticCurveTo(-8, -2, 0, -12); ctx.closePath();
+    ctx.fillStyle = radg(-2, -2, 1, 0, 0, 9, ['#ffffff', '#9ef0c8', '#3eb85a']); ctx.fill(); outline(1.3, '#174f22');
+    ctx.fillStyle = 'rgba(255,255,255,.85)'; ell(-2.2, -1, 1.4, 2.4); ctx.fill();
+  } else if (id === 'cap') {
+    ctx.beginPath(); ctx.moveTo(-10, 2); ctx.bezierCurveTo(-11, -12, 11, -12, 10, 2); ctx.quadraticCurveTo(0, -1, -10, 2); ctx.closePath();
+    ctx.fillStyle = radg(-3, -6, 1, 0, -3, 11, ['#ffc884', '#ff8a2a', '#c4440e']); ctx.fill(); outline(1.3);
+    ctx.fillStyle = '#fff8ee'; ell(-4, -4, 2.2, 1.8); ctx.fill(); ell(3, -6, 2.6, 2); ctx.fill(); ell(5, -1, 1.5, 1.2); ctx.fill();
+  } else if (id === 'twig') {
+    ctx.beginPath(); ctx.moveTo(-9, 4); ctx.lineTo(8, -8); ctx.moveTo(0, -2); ctx.lineTo(1, -11);
+    ctx.lineWidth = 4.4; ctx.strokeStyle = OUT; ctx.stroke(); ctx.lineWidth = 2.6; ctx.strokeStyle = '#a8743f'; ctx.stroke();
+    ctx.save(); ctx.translate(1, -12); ctx.rotate(-.6); ell(0, -3, 3, 5); ctx.fillStyle = '#6cc644'; ctx.fill(); outline(1, '#24501a'); ctx.restore();
+  } else if (id === 'spore') {
+    for (const [x, y, r] of [[-4, -1, 5], [4, -2, 5.5], [0, -6, 5]]) { ell(x, y, r, r); ctx.fillStyle = '#c99af0'; ctx.fill(); outline(1.2, '#3a1060'); }
+    ctx.fillStyle = 'rgba(80,20,120,.55)'; ell(-3, -1, 1.2, 1.2); ctx.fill(); ell(4, -3, 1.4, 1.4); ctx.fill(); ell(0, -7, 1, 1); ctx.fill();
+  } else if (id === 'snowball') {
+    ell(0, -2, 8, 8); ctx.fillStyle = radg(-3, -5, 1, 0, -2, 9, ['#ffffff', '#e4f0ff', '#9ec0e8']); ctx.fill(); outline(1.3, '#4a6a9a');
+    ctx.fillStyle = 'rgba(140,170,210,.6)'; ell(3, 1, 2, 1.4); ctx.fill(); ell(-2, 2, 1.4, 1); ctx.fill();
+  } else {
+    ctx.fillStyle = radg(0, -2, 0, 0, -2, 14, ['rgba(255,150,60,.6)', 'rgba(255,90,30,0)']); ell(0, -2, 14, 14); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(0, -12); ctx.lineTo(8, -3); ctx.lineTo(0, 7); ctx.lineTo(-8, -3); ctx.closePath();
+    ctx.fillStyle = lin(-8, -12, 8, 7, ['#fff2a0', '#ff8a3a', '#c4300e']); ctx.fill(); outline(1.3, '#5a1000');
+    ctx.fillStyle = 'rgba(255,255,255,.7)'; ctx.beginPath(); ctx.moveTo(0, -10); ctx.lineTo(-5, -3); ctx.lineTo(-1, -3); ctx.closePath(); ctx.fill();
+  }
+}
+// The village elder who hands out the quest chain.
+const ELDER = { x: 128 };
+function drawElder(x, y) {
+  ctx.save(); ctx.translate(x, y + Math.sin(time * 1.6) * .6);
+  ctx.beginPath(); ctx.moveTo(21, 0); ctx.lineTo(19, -60); ctx.lineWidth = 5; ctx.strokeStyle = OUT; ctx.stroke(); ctx.lineWidth = 3; ctx.strokeStyle = '#8a5a32'; ctx.stroke();
+  ctx.save(); ctx.translate(19, -65); ctx.rotate(Math.sin(time * 2) * .1); ctx.fillStyle = '#ff7a1a'; mapleLeaf(7); ctx.fill(); outline(1.2); ctx.restore();
+  ctx.beginPath(); ctx.moveTo(-14, -42); ctx.quadraticCurveTo(-21, -14, -20, 0); ctx.lineTo(18, 0); ctx.quadraticCurveTo(19, -14, 13, -42); ctx.closePath();
+  ctx.fillStyle = lin(-20, 0, 20, 0, ['#9a7ad8', '#6a4ab8', '#43308a']); ctx.fill(); outline(1.6);
+  rr(-8, -32, 16, 30, 4); ctx.fillStyle = lin(0, -32, 0, 0, ['#fffaf0', '#efe2c8']); ctx.fill(); outline(1.2);
+  ctx.strokeStyle = 'rgba(200,120,60,.6)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(-5, -10); ctx.lineTo(5, -10); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-17, -47); ctx.quadraticCurveTo(0, -38, 16, -47); ctx.lineTo(14, -33); ctx.quadraticCurveTo(0, -25, -15, -33); ctx.closePath();
+  ctx.fillStyle = lin(0, -47, 0, -27, ['#ff8a4a', '#d8501a']); ctx.fill(); outline(1.5);
+  ell(0, -33, 2.6, 2.6); ctx.fillStyle = '#ffd34d'; ctx.fill(); outline(1);
+  ell(17, -40, 4.2, 3.8); ctx.fillStyle = SKIN; ctx.fill(); outline(1.3);
+  ell(0, -61, 14, 13.5); ctx.fillStyle = radg(-4, -66, 2, 0, -61, 15, ['#fff0e0', SKIN, SKIN_D]); ctx.fill(); outline(1.6);
+  ell(-1, -80, 7, 6); ctx.fillStyle = lin(0, -86, 0, -74, ['#ffffff', '#cfc8d8']); ctx.fill(); outline(1.4);
+  ctx.beginPath(); ctx.moveTo(-14, -60); ctx.quadraticCurveTo(-16, -77, 0, -76); ctx.quadraticCurveTo(15, -77, 14, -60); ctx.quadraticCurveTo(9, -69, 1, -68); ctx.quadraticCurveTo(-8, -69, -14, -60); ctx.closePath();
+  ctx.fillStyle = lin(0, -77, 0, -60, ['#ffffff', '#ddd6e6']); ctx.fill(); outline(1.4);
+  ctx.strokeStyle = OUT; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(-4.5, -60, 2.4, Math.PI + .4, -.4); ctx.moveTo(7.6, -60); ctx.arc(5.5, -60, 2.4, Math.PI + .4, -.4); ctx.stroke();
+  ctx.lineWidth = 1.1; ctx.beginPath(); ctx.arc(-4.5, -60.5, 4.4, 0, Math.PI * 2); ctx.moveTo(9.9, -60.5); ctx.arc(5.5, -60.5, 4.4, 0, Math.PI * 2); ctx.moveTo(-.1, -61); ctx.lineTo(1.1, -61); ctx.stroke();
+  ctx.fillStyle = 'rgba(255,120,120,.4)'; ell(-8, -55, 2.6, 1.6); ctx.fill(); ell(9, -55, 2.6, 1.6); ctx.fill();
+  ctx.strokeStyle = '#9a4a2a'; ctx.lineWidth = 1.3; ctx.beginPath(); ctx.arc(.5, -54, 2.4, .3, Math.PI - .3); ctx.stroke();
+  ctx.restore();
+}
+function drawQuestMark(x, y) {
+  const m = questMark(); if (!m) return;
+  const by = y + Math.sin(time * 4) * 3, gold = m !== 'wait';
+  ctx.save(); ctx.translate(x, by);
+  ctx.fillStyle = gold ? 'rgba(255,220,90,.35)' : 'rgba(200,200,220,.25)'; ell(0, 0, 16, 16); ctx.fill();
+  ell(0, 0, 11, 11); ctx.fillStyle = gold ? lin(0, -11, 0, 11, ['#fff2a0', '#ffc22e', '#e8901a']) : lin(0, -11, 0, 11, ['#f0f0f6', '#b8b8c8']); ctx.fill(); outline(1.8);
+  ctx.font = '17px "Lilita One","Arial Black",sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = gold ? '#7a3a00' : '#4a4a5a'; ctx.fillText(m === 'new' ? '!' : '?', 0, 1);
+  ctx.restore();
+}
 function drawMerchant(x, y) {
   ctx.save(); ctx.translate(x, y + Math.sin(time * 2) * .8);
   rr(-16, -72, 32, 34, 10); ctx.fillStyle = lin(-16, 0, 16, 0, ['#6a9ad8', '#3f6aa8']); ctx.fill(); outline(1.6);
@@ -1847,6 +2118,7 @@ function drawProps() {
     blit(getSprite('stallF', -92, -162, 188, 164, stallFrontArt), SHOP.x, SHOP.y);
   }
   if (MAP.town && vis(428, 70)) blit(getSprite('sign', -56, -94, 120, 96, signArt), 428, GROUND);
+  if (MAP.town && vis(ELDER.x, 40)) drawElder(ELDER.x, GROUND);
   drawLanterns();
 }
 function drawPortal(pt) {
@@ -2424,6 +2696,12 @@ function drawPrompts() {
     ctx.fillStyle = 'rgba(20,14,28,.72)'; rr(SHOP.x - tw / 2, SHOP.y + 6, tw, 16, 3); ctx.fill();
     ctx.fillStyle = '#ffe28a'; ctx.fillText(label, SHOP.x, SHOP.y + 14.5);
     if (nearShop() && running) bubble(SHOP.x, SHOP.y - 182, '按 ↑ 打开商店');
+    ctx.font = '12px "PingFang SC","Microsoft YaHei",sans-serif';
+    const el = '村长 · 枫奶奶', ew = ctx.measureText(el).width + 12;
+    ctx.fillStyle = 'rgba(20,14,28,.72)'; rr(ELDER.x - ew / 2, GROUND + 6, ew, 16, 3); ctx.fill();
+    ctx.fillStyle = '#ffe28a'; ctx.fillText(el, ELDER.x, GROUND + 14.5);
+    if (nearElder() && running) bubble(ELDER.x, GROUND - 132, '按 ↑ 和枫奶奶说话');
+    else drawQuestMark(ELDER.x, GROUND - 118);
   }
   const pt = running && nearPortal();
   if (pt) { const d = MAPS[pt.to]; bubble(pt.x, GROUND - 160, `按 ↑ 前往${d.short}（Lv.${d.lv}+）`); }
@@ -2637,26 +2915,7 @@ function drawDemon(m, lw) {
   ctx.restore();
   arm(1, -.25 - st * .2);
 }
-function drawMob(m) {
-  const T = m.T;
-  ctx.save();
-  ctx.translate(m.x, m.y);
-  const fade = m.alive ? Math.min(1, 1 - m.spawnT * 2) : Math.max(0, m.deadT / .7);
-  ctx.globalAlpha = fade;
-  const sh = Math.max(.3, 1 - m.hopY / 200);
-  ctx.fillStyle = 'rgba(30,30,20,.28)'; ell(0, 1, T.w * .5 * sh, 5 * sh); ctx.fill();
-  if (m.elite && m.alive) {
-    const cy = -T.h * .45 - m.hopY, R = T.h * .78 + Math.sin(time * 5) * 3;
-    ctx.fillStyle = radg(0, cy, 2, 0, cy, R, ['rgba(255,220,90,.5)', 'rgba(255,200,60,0)']); ell(0, cy, R, R); ctx.fill();
-  }
-  ctx.translate(0, -m.hopY);
-  if (!m.alive) ctx.translate(0, -(.7 - m.deadT) * 30);
-  const sq = m.squash, s = m === boss ? 3 : m.elite ? 1.35 : 1, lw = 1.5 / s;
-  const breathe = Math.sin(m.anim * 4) * .03;
-  ctx.scale(m.dir * (1 + sq * .6 + breathe) * s, (1 - sq - breathe) * s);
-  if (m.hitT > 0) ctx.translate((Math.random() - .5) * 3, 0);
-  if (m.hitT > .08 && FILTER_OK) ctx.filter = 'brightness(1.9) saturate(.6)';
-
+function drawMobBody(m, lw) {
   if (m.type === 'mush') drawMushroomBody(m, ['#ff8a2a', '#c4440e', '#ffc884'], lw);
   else if (m.type === 'bluemush') drawMushroomBody(m, ['#4f9fff', '#1f56b8', '#b4dcff'], lw);
   else if (m.type === 'boss') {
@@ -2727,8 +2986,73 @@ function drawMob(m) {
     ell(-3, -16, 13.5, 13); outline(lw);
     ctx.fillStyle = 'rgba(255,255,255,.7)'; ell(-9, -23, 4, 2.2); ctx.fill();
   }
+}
+// A coloured flash without ctx.filter, which costs 100ms+ per draw on software-rendered canvases and
+// does nothing in Safari: draw into a scratch canvas, wash it with source-atop, stamp it back.
+const tintC = document.createElement('canvas'), tintG = tintC.getContext('2d');
+function drawTinted(draw, col, hw, h) {
+  const M = ctx.getTransform(), W = ctx.canvas.width, H = ctx.canvas.height, xs = [], ys = [];
+  for (const [x, y] of [[-hw, -h], [hw, -h], [-hw, 12], [hw, 12]]) { xs.push(M.a * x + M.c * y + M.e); ys.push(M.b * x + M.d * y + M.f); }
+  const x0 = Math.floor(Math.max(0, Math.min(...xs))), y0 = Math.floor(Math.max(0, Math.min(...ys)));
+  const w = Math.ceil(Math.min(W, Math.max(...xs))) - x0, hh = Math.ceil(Math.min(H, Math.max(...ys))) - y0;
+  if (w <= 0 || hh <= 0) return;
+  if (tintC.width < w || tintC.height < hh) { tintC.width = Math.max(tintC.width, w); tintC.height = Math.max(tintC.height, hh); }
+  const g = tintG;
+  g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'source-over'; g.clearRect(0, 0, w, hh);
+  g.setTransform(M.a, M.b, M.c, M.d, M.e - x0, M.f - y0); g.lineJoin = 'round'; g.lineCap = 'round';
+  withCtx(g, draw);
+  g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'source-atop'; g.fillStyle = col; g.fillRect(0, 0, w, hh);
+  g.globalCompositeOperation = 'source-over';
+  ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(tintC, 0, 0, w, hh, x0, y0, w, hh); ctx.restore();
+}
+function drawMob(m) {
+  const T = m.T;
+  ctx.save();
+  ctx.translate(m.x, m.y);
+  const fade = m.alive ? Math.min(1, 1 - m.spawnT * 2) : Math.max(0, m.deadT / .7);
+  ctx.globalAlpha = fade;
+  const sh = Math.max(.3, 1 - m.hopY / 200);
+  ctx.fillStyle = 'rgba(30,30,20,.28)'; ell(0, 1, T.w * .5 * sh, 5 * sh); ctx.fill();
+  // telegraphs: where a wind-up slam or a boss landing will hit
+  const ringR = !m.alive ? 0 : m === boss && m.bigJump ? 330 : m.state === 'windup' && T.skill === 'slam' ? T.w * .5 + SLAM_PAD + 20 : 0;
+  if (ringR) {
+    const k = m === boss ? (m.crouchT > 0 ? 1 - m.crouchT / .5 : 1) : 1 - m.windT / m.windDur, fy = m === boss ? GROUND - m.y : 0;
+    ctx.save(); ctx.globalAlpha = .4 + .45 * k;
+    ctx.beginPath(); ctx.ellipse(0, fy, ringR, ringR * .07 + 4, 0, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255,60,30,${.1 + .12 * (Math.sin(time * 28) * .5 + .5)})`; ctx.fill(); ctx.strokeStyle = '#ff5a3a'; ctx.lineWidth = 2.4; ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(0, fy, ringR * k, (ringR * .07 + 4) * k, 0, 0, Math.PI * 2); ctx.strokeStyle = '#ffd08a'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.restore();
+  }
+  if (m.elite && m.alive) {
+    const cy = -T.h * .45 - m.hopY, R = T.h * .78 + Math.sin(time * 5) * 3;
+    ctx.fillStyle = radg(0, cy, 2, 0, cy, R, ['rgba(255,220,90,.5)', 'rgba(255,200,60,0)']); ell(0, cy, R, R); ctx.fill();
+  }
+  ctx.translate(0, -m.hopY);
+  if (!m.alive) ctx.translate(0, -(.7 - m.deadT) * 30);
+  const sq = m.squash, s = m === boss ? 3 : m.elite ? 1.35 : 1, lw = 1.5 / s;
+  const breathe = Math.sin(m.anim * 4) * .03;
+  ctx.scale(m.dir * (1 + sq * .6 + breathe) * s, (1 - sq - breathe) * s);
+  if (m.hitT > 0) ctx.translate((Math.random() - .5) * 3, 0);
+  const winding = m.alive && m.state === 'windup';
+  if (winding) {
+    const k = 1 - m.windT / m.windDur;
+    ctx.translate((Math.random() - .5) * 2.6 * k, 0);
+    if (T.skill === 'throw') ctx.rotate(-.18 * k);
+  }
+  // hit flash / wind-up tint, done without ctx.filter (see drawTinted)
+  const tint = !m.alive ? null : m.hitT > .08 ? 'rgba(255,255,255,.62)' : (winding || (m === boss && m.crouchT > 0)) && Math.floor(time * 14) % 2 ? 'rgba(255,50,20,.42)' : null;
+  if (tint) drawTinted(() => drawMobBody(m, lw), tint, T.w * .5 / s * 1.7 + 14, (T.artH || T.h) / s * 1.35 + 18);
+  else drawMobBody(m, lw);
   ctx.restore();
 
+  if (m.alive && (m.state === 'windup' || (m === boss && m.crouchT > 0))) {
+    const age = m === boss ? .5 - m.crouchT : m.windDur - m.windT, pop = Math.min(1, age * 7) * (1 + Math.max(0, .15 - age) * 3);
+    ctx.save(); ctx.translate(m.x, m.y - m.hopY - T.h - 30); ctx.scale(pop, pop);
+    ell(0, 0, 11, 11); ctx.fillStyle = '#ff4d3a'; ctx.fill(); outline(2.2, '#fff');
+    ctx.font = '18px "Lilita One","Arial Black",sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#fff'; ctx.fillText('!', 0, 1);
+    ctx.restore();
+  }
   if (m.alive && (m.showBar > 0 || m === boss)) {
     const by = m.y - m.hopY - T.h - 12;
     if (m !== boss) {
@@ -2742,6 +3066,14 @@ function drawMob(m) {
   }
 }
 
+function drawShot(s) {
+  if (s.kind === 'fire') { meteorArt(s.x, s.y, 7, s.vx, s.vy); return; }
+  const c = SHOT_COL[s.kind];
+  if (s.kind === 'spore') { ctx.fillStyle = radg(s.x, s.y, 0, s.x, s.y, 18, ['rgba(200,140,255,.5)', 'rgba(200,140,255,0)']); ell(s.x, s.y, 18, 18); ctx.fill(); }
+  ell(s.x, s.y, 7.5, 7.5); ctx.fillStyle = radg(s.x - 2, s.y - 3, 1, s.x, s.y, 8, c); ctx.fill(); outline(1.5, s.kind === 'snow' ? '#4a6a9a' : '#3a1060');
+  ctx.fillStyle = 'rgba(255,255,255,.8)'; ell(s.x - 2.5, s.y - 3, 2.4, 1.6); ctx.fill();
+  if (s.kind === 'spore') { ctx.fillStyle = 'rgba(80,20,120,.6)'; ell(s.x + 2, s.y + 1, 1.4, 1.4); ctx.fill(); ell(s.x - 1, s.y + 3, 1, 1); ctx.fill(); }
+}
 function drawDrop(d) {
   ctx.save(); ctx.translate(d.x, d.y - 8 - (d.onGround ? Math.sin(d.t * 4) * 2 : 0));
   if (d.t > 50) ctx.globalAlpha = (Math.floor(d.t * 8) % 2) ? .3 : 1;
@@ -2757,6 +3089,10 @@ function drawDrop(d) {
       ctx.fillStyle = 'rgba(255,255,255,.75)'; ell(-2.6, -3.4, 1.8, 1); ctx.fill();
       ctx.restore();
     }
+  } else if (d.kind === 'q') {
+    // quest items twinkle so they read as "pick me up" among the coins
+    ctx.fillStyle = `rgba(255,240,160,${.25 + .2 * Math.sin(d.t * 6)})`; ell(0, -2, 13, 13); ctx.fill();
+    qItemArt(d.item);
   } else {
     const c = d.kind === 'hp' ? '#ff4d5e' : '#3d9bff';
     ctx.beginPath(); ctx.moveTo(-3, -10); ctx.lineTo(3, -10); ctx.lineTo(3, -6.5); ctx.arc(0, 0, 7.2, -1.15, Math.PI + 1.15); ctx.closePath();
@@ -2902,8 +3238,22 @@ function drawFx(f) {
     for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2, r = (i % 2 ? 6 : 22) * (.5 + k); ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r); }
     ctx.closePath(); ctx.fill(); ctx.restore();
   } else if (f.type === 'quake') {
+    const R = f.r || 340;
     ctx.save(); ctx.globalAlpha = 1 - k; ctx.strokeStyle = '#fff1c0'; ctx.lineWidth = 6 * (1 - k);
-    ctx.beginPath(); ctx.ellipse(f.x, f.y, 40 + k * 300, 10 + k * 40, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+    ctx.beginPath(); ctx.ellipse(f.x, f.y, 40 + k * (R - 40), 10 + k * R * .12, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+  } else if (f.type === 'fjump') {
+    ctx.save(); ctx.translate(f.x, f.y); ctx.scale(-f.face, 1); ctx.globalAlpha = 1 - k;
+    ctx.fillStyle = 'rgba(255,255,255,.9)';
+    for (let i = 0; i < 3; i++) { ell(8 + i * 10 + k * 34, 16 - i * 4, 10 - i * 2 + k * 7, 6.5 - i + k * 3); ctx.fill(); }
+    ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.lineWidth = 2;
+    for (const dy of [-18, -4, 10]) { ctx.beginPath(); ctx.moveTo(14 + k * 26, dy); ctx.lineTo(46 + k * 60, dy); ctx.stroke(); }
+    ctx.restore();
+  } else if (f.type === 'blink') {
+    ctx.save(); ctx.globalAlpha = 1 - k;
+    ctx.strokeStyle = '#cbb8ff'; ctx.lineWidth = 3 * (1 - k) + 1; ell(f.x, f.y, 10 + k * 26, 30 + k * 16); ctx.stroke();
+    ctx.fillStyle = '#ffffff';
+    for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2 + k * 2, r = 18 + k * 30; ell(f.x + Math.cos(a) * r, f.y + Math.sin(a) * r * 1.3, 2.2 * (1 - k) + .6, 2.2 * (1 - k) + .6); ctx.fill(); }
+    ctx.restore();
   } else if (f.type === 'levelup') {
     const p = player;
     ctx.save(); ctx.translate(p.x, p.y);
@@ -2951,6 +3301,21 @@ function drawBanner(f, slot) {
   ctx.fillStyle = '#ffd34d'; ctx.fillText(f.text, VW / 2, y + 2);
   ctx.restore();
 }
+function drawCombo() {
+  const x = VW - 26, y = VH * .3, s = 1 + comboPop * .35, a = Math.min(1, comboT / .6);
+  ctx.save(); ctx.globalAlpha = a; ctx.translate(x, y); ctx.textAlign = 'right'; ctx.textBaseline = 'alphabetic';
+  ctx.font = '15px "ZCOOL KuaiLe","PingFang SC",sans-serif'; ctx.lineWidth = 4; ctx.strokeStyle = '#3a1400';
+  ctx.strokeText('连杀', 0, -40); ctx.fillStyle = '#ffe28a'; ctx.fillText('连杀', 0, -40);
+  ctx.scale(s, s);
+  ctx.font = '40px "Lilita One","Arial Black",sans-serif'; ctx.lineWidth = 6; ctx.strokeText(String(killCombo), 0, 0);
+  const g = ctx.createLinearGradient(0, -34, 0, 0); g.addColorStop(0, '#fffbe0'); g.addColorStop(.5, '#ffd34d'); g.addColorStop(1, '#ff8a1a');
+  ctx.fillStyle = g; ctx.fillText(String(killCombo), 0, 0);
+  ctx.restore();
+  ctx.save(); ctx.globalAlpha = a;
+  ctx.fillStyle = 'rgba(20,10,30,.6)'; rr(x - 70, y + 8, 70, 5, 2.5); ctx.fill();
+  ctx.fillStyle = '#ffd34d'; rr(x - 70, y + 8, 70 * comboT / COMBO_WINDOW, 5, 2.5); ctx.fill();
+  ctx.restore();
+}
 function drawNum(n) {
   if (n.t < 0) return;
   const k = n.t / n.life;
@@ -2959,13 +3324,14 @@ function drawNum(n) {
   ctx.save(); ctx.globalAlpha = a; ctx.translate(n.x, y); ctx.scale(pop, pop);
   const size = n.kind === 'crit' ? 34 : n.kind === 'mob' ? 28 : 24;
   ctx.font = `${size}px "Lilita One","Arial Black",sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  const txt = (n.kind === 'heal' || n.kind === 'mana' ? '+' : '') + n.val;
+  const txt = (n.kind === 'heal' || n.kind === 'mana' || n.kind === 'exp' ? '+' : '') + n.val + (n.kind === 'exp' ? ' EXP' : '');
   const pal = {
     mob: ['#fff2a8', '#ffb02e', '#e8621b', '#4a1a00'],
     crit: ['#ffe0f0', '#ff5a8a', '#c4104a', '#3a0016'],
     player: ['#f0d8ff', '#b77bff', '#6a2ad8', '#1e0a40'],
     heal: ['#e0ffe0', '#6ee86e', '#1f9a2f', '#0a3010'],
     mana: ['#e0f0ff', '#6ab8ff', '#1f5bbf', '#0a2040'],
+    exp: ['#fffbe0', '#d8ff6a', '#5aa81a', '#1a3a00'],
   }[n.kind];
   const g = ctx.createLinearGradient(0, -size / 2, 0, size / 2);
   g.addColorStop(0, pal[0]); g.addColorStop(.5, pal[1]); g.addColorStop(1, pal[2]);
@@ -3016,7 +3382,7 @@ function render(dt) {
   buildBg();
   drawSky();
   drawBgLayers();
-  const sx = cam.shake > 0 ? (Math.random() - .5) * 10 * cam.shake : 0, sy = cam.shake > 0 ? (Math.random() - .5) * 10 * cam.shake : 0;
+  const shake = SET.shake ? cam.shake : 0, sx = shake > 0 ? (Math.random() - .5) * 10 * shake : 0, sy = shake > 0 ? (Math.random() - .5) * 10 * shake : 0;
   ctx.save(); ctx.translate(-Math.round(cam.x * 10) / 10 + sx, -Math.round(cam.y * 10) / 10 + sy);
   worldInv = ctx.getTransform().inverse();
   drawProps();
@@ -3027,6 +3393,7 @@ function render(dt) {
   for (const d of drops) drawDrop(d);
   drawHazards();
   for (const m of monsters) if (m.x > cam.x - 200 && m.x < cam.x + VW + 200) drawMob(m);
+  for (const s of mobShots) drawShot(s);
   drawPet();
   drawPlayer();
   drawTrail();
@@ -3049,6 +3416,7 @@ function render(dt) {
   drawLeaves(dt);
   let slot = 0;
   for (const f of fx) if (f.type === 'banner') drawBanner(f, slot++);
+  if (killCombo >= 3) drawCombo();
   ctx.drawImage(overlayC, 0, 0, Math.ceil(VW * .5), overlayC.height, 0, 0, Math.ceil(VW * .5) / .5, VH);
   if (player.dead) { ctx.fillStyle = 'rgba(30,10,40,.25)'; ctx.fillRect(0, 0, VW, VH); }
   if (trans) { const a = trans.phase === 'out' ? trans.t / .3 : 1 - trans.t / .35; ctx.fillStyle = `rgba(10,6,16,${clamp(a, 0, 1)})`; ctx.fillRect(0, 0, VW, VH); }
@@ -3071,8 +3439,12 @@ addEventListener('resize', resize);
 let last = performance.now();
 // If a device can't keep up at high-DPI, drop to 1x pixels once (sharpness for smoothness).
 let lowQuality = false, perfN = 0, perfSum = 0;
+// slowMo: real seconds left of the brief slow-motion that sells a boss kill
+let slowMo = 0;
 function frame(now) {
-  const raw = (now - last) / 1000, dt = Math.min(raw, 1 / 30); last = now;
+  const raw = (now - last) / 1000; last = now;
+  let dt = Math.min(raw, 1 / 30);
+  if (slowMo > 0) { slowMo -= raw; dt *= .3; }
   if (!lowQuality && running && raw < .5 && (window.devicePixelRatio || 1) > 1) {
     perfSum += raw; perfN++;
     if (perfN === 150) { if (perfSum / perfN > 1 / 40) { lowQuality = true; resize(); } perfN = 0; perfSum = 0; }
@@ -3159,7 +3531,9 @@ function bookPortrait(type, known) {
   const g = c.getContext('2d'); g.setTransform(d, 0, 0, d, 0, 0); g.lineJoin = 'round'; g.lineCap = 'round';
   const T = TYPES[type], ah = BOSS_TYPES.has(type) ? T.h / 3 : T.artH || T.h, sc = Math.min(1.5, 52 / ah);
   const fake = { type, T, x: 0, y: 0, hopY: 0, dir: 1, anim: 1.3, state: 'idle', squash: 0, hitT: 0, alive: true, spawnT: 0, deadT: 0, showBar: 0, shell: '#4f8fe0', aggro: false, kbV: 0 };
-  withCtx(g, () => { ctx.translate(W / 2, H - 8); ctx.scale(sc, sc); if (!known && FILTER_OK) ctx.filter = 'brightness(0) opacity(.35)'; drawMob(fake); });
+  withCtx(g, () => { ctx.translate(W / 2, H - 8); ctx.scale(sc, sc); drawMob(fake); });
+  // unknown monsters show only as a dark silhouette
+  if (!known) { g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'source-atop'; g.fillStyle = '#120c18'; g.fillRect(0, 0, c.width, c.height); c.style.opacity = '.4'; }
   return c;
 }
 function renderBook() {
@@ -3193,6 +3567,124 @@ function showEnding() {
 }
 function closeEnding() { if (!endingOpen) return; endingOpen = false; running = true; $('ending').hidden = true; log('[系统] 恭喜通关！枫叶岛的冒险还可以继续', 'sys'); }
 
+// ---------- world map: paid fast travel to places already visited ----------
+const travelCost = id => (id === 0 ? 100 : MAPS[id].lv * 30);
+function openMap() {
+  if (player.dead || trans) return;
+  if (openPanel('worldmap')) { renderMap(); $('mapClose').focus({ preventScroll: true }); }
+}
+function renderMap() {
+  const p = player;
+  $('mapMeso').textContent = p.meso.toLocaleString();
+  $('mapList').innerHTML = MAPS.map((M, i) => {
+    const T = THEMES[M.theme], here = i === MAP.id, been = p.visited.includes(i), B = TYPES[M.boss.type], cost = travelCost(i);
+    const mobs = [...new Set(M.spawns.map(([t]) => t))].map(t => (p.book[t] ? TYPES[t].name : '？？？')).join('、');
+    const act = here ? '<span class="own">你在这里</span>' : !been ? '<button class="sbtn" type="button" disabled>还没去过</button>'
+      : priceBtn('go:' + i, i === 0 ? '回村' : '前往', cost, p.meso >= cost);
+    return `<div class="srow${here ? ' here' : ''}"><div class="mapico" style="background:linear-gradient(${T.sky[1]}, ${T.sky[3]} 58%, ${T.turf[1]} 58%, ${T.earth[1]})"></div>
+      <div><div class="sn">${M.name}<span class="own">Lv.${M.lv}+</span></div><div class="sd">${been ? mobs : '？？？'}</div>
+      <div class="sd">Boss：${been ? B.name : '？？？'}${p.book[M.boss.type] ? ' · <span class="ok">已击败 ✓</span>' : ''}${M.town ? ' · 杂货铺 · 村长' : ''}</div></div>
+      <div class="sbuy">${act}</div></div>`;
+  }).join('');
+}
+$('mapList').addEventListener('click', e => {
+  const b = e.target.closest('[data-buy]'); if (!b || b.disabled) return;
+  const id = +b.dataset.buy.slice(3), cost = travelCost(id), p = player;
+  if (!MAPS[id] || id === MAP.id || p.meso < cost || p.dead) return;
+  p.meso -= cost; closePanel();
+  trans = { phase: 'out', t: 0, to: id, tx: MAPS[id].start };
+  p.vx = 0; p.climb = null; sfx.portal(); updateHud();
+  log(`[系统] 乘坐传送石前往 ${MAPS[id].short}（-${cost} 金币）`, 'sys');
+});
+$('mapBtn').addEventListener('click', e => { e.currentTarget.blur(); openMap(); });
+
+// ---------- quests ----------
+const nearElder = () => MAP.town && Math.abs(player.x - ELDER.x) < 60 && player.plat === GROUND_PLAT && !player.dead;
+const curQuest = () => QUESTS[player.q.i] || null;
+const activeQuest = () => (player.q.on ? curQuest() : null);
+// 'new' (can accept), 'done' (hand in), 'wait' (in progress) or '' (nothing to show)
+function questMark() {
+  const Q = curQuest(), q = player.q;
+  if (!Q) return '';
+  if (q.on) return q.n >= Q.n ? 'done' : 'wait';
+  return player.level >= Q.lv ? 'new' : '';
+}
+const questGoal = Q => (Q.item ? Q.item.name : `击败${TYPES[Q.kill].name}`);
+const questWhere = Q => [...new Set((Q.item ? Q.item.from : [Q.kill]).map(t => TYPE_HOME[t]))].join('、');
+function questProgress(n) {
+  const Q = activeQuest(), q = player.q;
+  q.n = Math.min(Q.n, q.n + n);
+  if (q.n >= Q.n) { log(`[任务] 「${Q.name}」完成了，回村里找枫奶奶领奖励吧`, 'sys'); fx.push({ type: 'banner', text: `任务完成：${Q.name}`, t: 0, life: 2 }); sfx.level(); }
+  updateQuestHud(); persist();
+}
+// On each kill: credit boss quests, and let quest drops fall only while they are still needed.
+function questKill(m) {
+  const Q = activeQuest(), q = player.q;
+  if (!Q || q.n >= Q.n) return;
+  if (Q.kill === m.type) { questProgress(1); return; }
+  if (Q.item && Q.item.from.includes(m.type)) {
+    const n = m.elite ? 2 : Math.random() < .6 ? 1 : 0;
+    for (let i = 0; i < n; i++) dropItem(m.x, m.y - 20, 'q', 1, Q.item.id);
+  }
+}
+function questItem(id) {
+  const Q = activeQuest();
+  if (!Q || !Q.item || Q.item.id !== id || player.q.n >= Q.n) return;
+  sfx.item(); log(`获得 ${Q.item.name} (${player.q.n + 1}/${Q.n})`, 'it');
+  questProgress(1);
+}
+function updateQuestHud() {
+  const Q = activeQuest(), done = Q && player.q.n >= Q.n;
+  const html = !Q ? '' : done ? `「${Q.name}」已完成，回村找<b>枫奶奶</b>` : `${questGoal(Q)} <b>${player.q.n}/${Q.n}</b> · ${questWhere(Q)}`;
+  if (hudCache.quest === html) return;
+  hudCache.quest = html;
+  $('npcQuest').hidden = !Q; $('npcQuestTxt').innerHTML = html; $('npcQuestTxt').classList.toggle('done', !!done);
+}
+const rewardText = R => [`经验 ${R.exp.toLocaleString()}`, `金币 ${R.meso.toLocaleString()}`, R.hp && `红药 ×${R.hp}`, R.mp && `蓝药 ×${R.mp}`].filter(Boolean).join(' · ');
+function elderFace() {
+  const c = document.createElement('canvas'), d = Math.min(window.devicePixelRatio || 1, 2);
+  c.width = c.height = 56 * d; c.style.width = c.style.height = '56px';
+  const g = c.getContext('2d'); g.setTransform(d, 0, 0, d, 0, 0); g.lineJoin = 'round'; g.lineCap = 'round';
+  withCtx(g, () => { ctx.translate(26, 118); ctx.scale(1.25, 1.25); drawElder(0, 0); });
+  return c;
+}
+function openTalk() {
+  if (!openPanel('talk')) return;
+  if (!$('talkFace').firstChild) $('talkFace').appendChild(elderFace());
+  renderTalk();
+}
+function renderTalk() {
+  const p = player, Q = curQuest(), q = p.q, btn = (act, label, big) => `<button class="sbtn" type="button" data-talk="${act}"${big ? ' style="font-size:14px;padding:7px 16px"' : ''}>${label}</button>`;
+  let text, card = '', btns;
+  $('talkSub').textContent = Q ? `委托 ${Math.min(q.i + 1, QUESTS.length)} / ${QUESTS.length}` : `委托全部完成 ${QUESTS.length} / ${QUESTS.length}`;
+  if (!Q) { text = '你已经是枫叶岛的英雄了。有空常回来看看奶奶，陪我聊聊天。'; btns = btn('close', '好的', true); }
+  else if (!q.on && p.level < Q.lv) { text = `你还太年轻啦。等你到 <b>Lv.${Q.lv}</b> 再来找我，奶奶有事拜托你。`; btns = btn('close', '好的', true); }
+  else {
+    const done = q.on && q.n >= Q.n;
+    text = done ? Q.done : q.on ? `「${Q.name}」进行得怎么样了？${Q.item ? `${Q.item.name}只有在接了委托之后才会掉落。` : ''}` : Q.ask;
+    card = `<div class="qcard"><div class="qn">${Q.name}${q.on ? ` · ${q.n}/${Q.n}` : ''}</div><div>目标：${questGoal(Q)} ×${Q.n}（${questWhere(Q)}）</div><div class="qr">奖励：${rewardText(Q.reward)}</div></div>`;
+    // long-outgrown errands can be waved off (no reward) so a high-level save isn't sent back to snails
+    const skip = !q.on && Q.item && p.level >= Q.lv + 10 ? btn('skip', '跳过这个委托') : '';
+    btns = done ? btn('finish', '完成委托', true) : q.on ? btn('close', '这就去', true) : skip + btn('later', '以后再说') + btn('accept', '接受委托', true);
+  }
+  $('talkText').innerHTML = text; $('talkQuest').innerHTML = card; $('talkBtns').innerHTML = btns;
+  $('talkBtns').querySelector('[data-talk]:last-child').focus({ preventScroll: true });
+}
+$('talkBtns').addEventListener('click', e => {
+  const b = e.target.closest('[data-talk]'); if (!b) return;
+  const p = player, Q = curQuest(), act = b.dataset.talk;
+  if (act === 'accept' && Q && !p.q.on) { p.q = { i: p.q.i, on: true, n: 0 }; log(`[任务] 接受了委托「${Q.name}」`, 'sys'); sfx.buy(); }
+  else if (act === 'skip' && Q && !p.q.on) { p.q = { i: p.q.i + 1, on: false, n: 0 }; log(`[任务] 跳过了委托「${Q.name}」`, 'sys'); }
+  else if (act === 'finish' && Q && p.q.on && p.q.n >= Q.n) {
+    const R = Q.reward;
+    p.q = { i: p.q.i + 1, on: false, n: 0 };
+    p.meso += R.meso; p.hpPot += R.hp || 0; p.mpPot += R.mp || 0;
+    log(`[任务] 完成「${Q.name}」：${rewardText(R)}`, 'sys'); sfx.level();
+    gainExp(R.exp);
+  } else { closePanel(); return; }
+  updateQuestHud(); updateHud(); persist(); renderTalk();
+});
+
 // ---------- maps ----------
 const nearPortal = () => player.onGround && !player.dead && MAP.portals.find(pt => Math.abs(player.x - pt.x) < 46);
 function usePortal(pt) {
@@ -3203,12 +3695,13 @@ function usePortal(pt) {
 }
 function loadMap(id, px) {
   MAP = MAPS[id]; TH = THEMES[MAP.theme]; HAZE = TH.haze; player.mapId = id;
+  if (!player.visited.includes(id)) player.visited.push(id);
   WORLD_W = MAP.w; GROUND_PLAT.w = WORLD_W + 400;
   platforms = MAP.platforms; allPlats = [GROUND_PLAT, ...platforms]; ropes = MAP.ropes; trees = MAP.trees; DECOR = MAP.decor;
   spawns = [];
   const zone = { x: MAP.zone[0], y: GROUND, w: MAP.zone[1] - MAP.zone[0], ground: true };
   for (const [type, where, n] of MAP.spawns) addSpawn(type, where === 'g' ? zone : platforms[where], n);
-  monsters = []; drops = []; arrows = []; pendingHits = []; hazards = []; boss = null; bossSpawned = false; $('bossbar').hidden = true;
+  monsters = []; drops = []; arrows = []; pendingHits = []; hazards = []; mobShots = []; boss = null; bossSpawned = false; $('bossbar').hidden = true;
   for (const sp of spawns) { sp.mob = makeMob(sp); sp.mob.spawnT = 0; monsters.push(sp.mob); }
   petObj = null;
   Object.assign(player, { x: px, y: GROUND, vx: 0, vy: 0, plat: GROUND_PLAT, onGround: true, climb: null, atkT: 0, trail: [] });
@@ -3230,6 +3723,7 @@ function drawMinimap() {
   const dot = (x, y, r, col) => { g.beginPath(); g.arc(X(x), Y(y) - r, r, 0, Math.PI * 2); g.fillStyle = col; g.fill(); g.strokeStyle = 'rgba(0,0,0,.6)'; g.lineWidth = 1; g.stroke(); };
   for (const pt of MAP.portals) dot(pt.x, GROUND, 3, '#6ad0ff');
   if (MAP.town) dot(SHOP.x, GROUND, 2.6, '#7aff7a');
+  if (MAP.town && questMark()) dot(ELDER.x, GROUND, 3, '#ffd34d');
   if (boss) dot(boss.x, boss.y, 4, '#ff4d5e');
   dot(player.x, player.y, 3.2, '#ffe04a');
 }
@@ -3313,19 +3807,52 @@ function closeShop() {
 $('shopBody').addEventListener('click', e => { const b = e.target.closest('[data-buy]'); if (b && !b.disabled) buy(b.dataset.buy); });
 $('shopClose').addEventListener('click', closeShop);
 addEventListener('keydown', e => {
+  if (e.code === 'KeyM' && !panel && running) { openMap(); return; }
   if (e.code !== 'Escape' && e.code !== 'KeyQ') return;
   if (shopOpen) closeShop();
   if (bookOpen) closeBook();
   if (endingOpen) closeEnding();
+  if (panel) closePanel();
 });
 $('endBtn').addEventListener('click', closeEnding);
 $('bookBtn').addEventListener('click', e => { e.currentTarget.blur(); openBook(); });
 $('bookClose').addEventListener('click', closeBook);
-$('musicBtn').setAttribute('aria-pressed', String(musicOn));
-$('musicBtn').addEventListener('click', e => {
-  musicOn = !musicOn; e.currentTarget.setAttribute('aria-pressed', String(musicOn)); e.currentTarget.blur();
-  try { localStorage.setItem('maple-music', musicOn ? 'on' : 'off'); } catch (err) {}
-  initAudio(); if (AC && AC.state === 'suspended') AC.resume(); startMusic();
+
+// ---------- panels: settings, world map, NPC talk ----------
+let panel = null;
+function openPanel(id) {
+  if (!running) return false;
+  panel = id; running = false; player.vx = 0; player.atkT = 0; for (const k in keys) keys[k] = false;
+  $(id).hidden = false;
+  return true;
+}
+function closePanel() { if (!panel) return; $(panel).hidden = true; panel = null; running = true; }
+document.querySelectorAll('#setClose, #mapClose').forEach(b => b.addEventListener('click', closePanel));
+
+const SET = { music: true, sfx: true, shake: true, autoHp: 0, autoMp: 0 };
+try {
+  const s = JSON.parse(localStorage.getItem('maple-settings') || 'null');
+  if (s && typeof s === 'object') for (const k in SET) if (k in s) SET[k] = typeof SET[k] === 'boolean' ? !!s[k] : [0, .3, .5].includes(s[k]) ? s[k] : 0;
+  else if (localStorage.getItem('maple-music') === 'off') SET.music = false;
+} catch (e) {}
+function applySettings() {
+  musicOn = SET.music; muted = !SET.sfx;
+  document.querySelectorAll('.seg').forEach(g => g.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(String(+SET[g.dataset.set]) === b.dataset.v))));
+}
+applySettings();
+$('settings').addEventListener('click', e => {
+  const b = e.target.closest('.seg button'); if (!b) return;
+  const k = b.closest('.seg').dataset.set;
+  SET[k] = typeof SET[k] === 'boolean' ? b.dataset.v === '1' : +b.dataset.v;
+  try { localStorage.setItem('maple-settings', JSON.stringify(SET)); } catch (err) {}
+  applySettings();
+  if (k === 'music' && SET.music) { initAudio(); if (AC && AC.state === 'suspended') AC.resume(); startMusic(); }
+});
+$('setBtn').addEventListener('click', e => { e.currentTarget.blur(); if (openPanel('settings')) $('setClose').focus({ preventScroll: true }); });
+// a hidden tab keeps no sound playing and loses no progress
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { persist(); if (AC && AC.state === 'running') AC.suspend()?.catch(() => {}); }
+  else if (AC && AC.state === 'suspended' && $('title').hidden) AC.resume()?.catch(() => {});
 });
 $('shopBtn').addEventListener('click', e => {
   e.currentTarget.blur();
@@ -3340,7 +3867,7 @@ function showPicked() {
   document.querySelectorAll('.cbtn').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.cls === pickedCls)));
   const C = CLASSES[pickedCls];
   $('zKey').textContent = C.skillDesc; $('vKey').textContent = `${C.buff.name}：${C.buff.desc}（Lv.5 起，耗 MP）`;
-  $('fKey').textContent = ultDesc(pickedCls);
+  $('fKey').textContent = ultDesc(pickedCls); $('aKey').textContent = moveDesc(pickedCls);
 }
 document.querySelectorAll('.cbtn').forEach(b => b.addEventListener('click', () => { pickedCls = b.dataset.cls; showPicked(); }));
 function setClass(c) {
@@ -3359,8 +3886,9 @@ $('startBtn').addEventListener('click', () => {
   setClass(pickedCls);
   $('title').hidden = true; running = true;
   log('[系统] 欢迎来到枫叶岛！向右走就是狩猎场', 'sys');
+  if (questMark() === 'new') log(MAP.town ? '[系统] 村长枫奶奶好像有事找你，去她那儿按 ↑ 聊聊吧' : '[系统] 村长枫奶奶有委托找你，按 M 打开世界地图可以传送回村', 'sys');
 });
-$('helpBtn').addEventListener('click', () => { if (shopOpen) closeShop(); if (bookOpen) closeBook(); if (endingOpen) closeEnding(); pickedCls = player.cls; showPicked(); showSaveNote(); running = false; $('title').hidden = false; $('startBtn').textContent = '继续冒险'; });
+$('helpBtn').addEventListener('click', () => { if (shopOpen) closeShop(); if (bookOpen) closeBook(); if (endingOpen) closeEnding(); if (panel) closePanel(); pickedCls = player.cls; showPicked(); showSaveNote(); running = false; $('title').hidden = false; $('startBtn').textContent = '继续冒险'; });
 function showSaveNote() {
   const p = player, has = p.level > 1 || p.exp > 0 || p.meso > 0 || p.cleared;
   $('saveNote').innerHTML = has ? `存档：Lv.${p.level}，金币 ${p.meso.toLocaleString()}${p.cleared ? ' · <span class="crown">★ 已通关</span>' : ''}` : '进度会自动保存在这台设备的浏览器里';
@@ -3373,14 +3901,14 @@ $('resetBtn').addEventListener('click', () => {
   if (!resetArm || performance.now() - resetArm > 4000) { resetArm = performance.now(); b.textContent = '确定删除？所有进度都会清空，再点一次'; b.classList.add('warn'); return; }
   try { localStorage.removeItem('maple-island-save'); } catch (e) {}
   Object.assign(player, { level: 1, exp: 0, meso: 0, hpPot: 5, mpPot: 5, kills: MAPS.map(() => 0), wpn: 0, arm: 0, mapId: 0, pets: [], pet: null, book: {},
-    buffT: 0, ultCD: 0, playT: 0, cleared: false, dead: false, invul: 0, face: 1, cls: pickedCls });
+    buffT: 0, ultCD: 0, playT: 0, cleared: false, dead: false, invul: 0, face: 1, cls: pickedCls, q: { i: 0, on: false, n: 0 }, visited: [0] });
+  killCombo = 0; comboT = 0;
   endingAt = 0; recalcStats(); player.hp = player.maxhp; player.mp = player.maxmp;
   $('deathbox').hidden = true;
   loadMap(0, MAPS[0].start);
   showSaveNote(); $('startBtn').textContent = '开始冒险';
   log('[系统] 存档已删除，新的冒险开始了', 'sys');
 });
-$('muteBtn').addEventListener('click', e => { muted = !muted; e.currentTarget.setAttribute('aria-pressed', String(!muted)); e.currentTarget.blur(); });
 $('reviveBtn').addEventListener('click', () => {
   const p = player;
   p.exp = Math.max(0, p.exp - Math.floor(expNeed(p.level) * .1));
